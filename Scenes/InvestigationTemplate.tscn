@@ -5,6 +5,9 @@
 
 [node name="InvestigationTemplate" type="Node2D" unique_id=1629418557]
 script = ExtResource("1_8ubl4")
+zoom_step = 1.0
+max_zoom = 10.0
+zoom_duration = 1.0
 
 [node name="Background" type="Sprite2D" parent="." unique_id=1762910297]
 position = Vector2(896.6842, 538.5)
