@@ -1,0 +1,69 @@
+[gd_scene format=3 uid="uid://cvrhq0qwcwo22"]
+
+[ext_resource type="Script" uid="uid://d18p2xas5gl4w" path="res://Scripts/MainMenu.gd" id="1_rrxvj"]
+
+[node name="MainMenu" type="Control" unique_id=1857774400]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_rrxvj")
+
+[node name="ColorRect" type="ColorRect" parent="." unique_id=1731701516]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0.24115604, 0.24115604, 0.24115604, 1)
+
+[node name="VBoxContainer" type="VBoxContainer" parent="." unique_id=1023189104]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -369.0
+offset_top = 124.0
+offset_right = 361.0
+offset_bottom = 466.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="BtnNewGame" type="Button" parent="VBoxContainer" unique_id=1229747832]
+layout_mode = 2
+theme_override_font_sizes/font_size = 32
+text = "New Game"
+
+[node name="BtnContinue" type="Button" parent="VBoxContainer" unique_id=145444622]
+layout_mode = 2
+theme_override_font_sizes/font_size = 32
+text = "Continue"
+
+[node name="BtnOptions" type="Button" parent="VBoxContainer" unique_id=1870167122]
+layout_mode = 2
+theme_override_font_sizes/font_size = 32
+text = "Options"
+
+[node name="BtnCredits" type="Button" parent="VBoxContainer" unique_id=1859345705]
+layout_mode = 2
+theme_override_font_sizes/font_size = 32
+text = "Credits"
+
+[node name="BtnQuit" type="Button" parent="VBoxContainer" unique_id=2094295604]
+layout_mode = 2
+theme_override_font_sizes/font_size = 32
+text = "Quit"
+
+[node name="Label" type="Label" parent="." unique_id=2119852386]
+layout_mode = 0
+offset_left = 794.0
+offset_top = 286.0
+offset_right = 1123.0
+offset_bottom = 369.0
+theme_override_font_sizes/font_size = 60
+text = "LE NEGATIF"
