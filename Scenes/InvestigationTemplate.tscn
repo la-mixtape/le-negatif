@@ -1,0 +1,16 @@
+[gd_scene format=3 uid="uid://g015di1g6be8"]
+
+[ext_resource type="Script" uid="uid://dgrsi6eveveg2" path="res://Scripts/InvestigationTemplate.gd" id="1_8ubl4"]
+[ext_resource type="Texture2D" uid="uid://brhs8e6c1umrh" path="res://Assets/Images/960px-Bellows_CliffDwellers.jpg" id="2_v48yd"]
+
+[node name="InvestigationTemplate" type="Node2D" unique_id=1629418557]
+script = ExtResource("1_8ubl4")
+
+[node name="Background" type="Sprite2D" parent="." unique_id=1762910297]
+position = Vector2(896.6842, 538.5)
+scale = Vector2(1.174342, 1.1743422)
+texture = ExtResource("2_v48yd")
+
+[node name="Camera2D" type="Camera2D" parent="." unique_id=688279309]
+position = Vector2(961, 542)
+position_smoothing_enabled = true

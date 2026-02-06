@@ -21,7 +21,7 @@ func _ready():
 func _on_new_game_pressed():
 	print("Lancement d'une nouvelle partie...")
 	# On change la scène vers la scène de jeu
-	get_tree().change_scene_to_file("res://Scenes/GameScene.tscn")
+	get_tree().change_scene_to_file("res://Scenes/InvestigationTemplate.tscn")
 
 func _on_continue_pressed():
 	print("Chargement de la partie...")
