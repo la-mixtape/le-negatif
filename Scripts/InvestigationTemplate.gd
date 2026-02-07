@@ -29,9 +29,9 @@ func _unhandled_input(event):
 	handle_zoom_input(event)
 	handle_mouse_panning(event)
 
-# --- NOUVELLE GESTION DU ZOOM (TWEEN) ---
 func handle_zoom_input(event):
 	var changed = false
+	var previous_target_zoom = target_zoom
 	
 	if event.is_action_pressed("zoom_in"):
 		target_zoom += zoom_step
@@ -43,24 +43,36 @@ func handle_zoom_input(event):
 	if changed:
 		# On borne la cible
 		target_zoom = clamp(target_zoom, min_zoom, max_zoom)
-		start_zoom_tween()
+		
+		# Si le zoom a effectivement changé (on n'était pas déjà au min/max)
+		if target_zoom != previous_target_zoom:
+			# 1. On récupère la position de la souris dans le monde
+			var mouse_pos = get_global_mouse_position()
+			
+			# 2. On calcule le nouveau facteur de position pour compenser le zoom
+			# Formule : NouvellePos = Souris + (AnciennePos - Souris) * (ZoomActuel / ZoomCible)
+			var current_zoom = camera.zoom.x
+			var target_position = mouse_pos + (camera.position - mouse_pos) * (current_zoom / target_zoom)
+			
+			start_zoom_tween(target_position)
 
-func start_zoom_tween():
-	# 1. Si un zoom est déjà en cours, on le tue pour commencer le nouveau (évite les conflits)
+func start_zoom_tween(target_position: Vector2):
+	# 1. Si un zoom est déjà en cours, on le tue
 	if zoom_tween:
 		zoom_tween.kill()
 	
 	# 2. On crée un nouveau Tween
 	zoom_tween = create_tween()
 	
-	# 3. On configure la courbe "d'atterrissage"
-	# TRANS_CUBIC ou TRANS_QUART donnent un effet "lourd" qui ralentit fort à la fin
-	# EASE_OUT signifie : rapide au début, lent à la fin
-	zoom_tween.set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	# 3. On configure la courbe (Parallel permet de jouer zoom et position en même temps)
+	zoom_tween.set_trans(Tween.TRANS_QUART).set_ease(Tween.EASE_OUT)
+	zoom_tween.set_parallel(true)
 	
-	# 4. On lance l'animation
-	# On anime la propriété "zoom" de la "camera" vers la valeur "Vector2(target...)" en "zoom_duration" secondes
+	# 4. On lance l'animation du Zoom
 	zoom_tween.tween_property(camera, "zoom", Vector2(target_zoom, target_zoom), zoom_duration)
+	
+	# 5. On lance l'animation de la Position (pour suivre la souris)
+	zoom_tween.tween_property(camera, "position", target_position, zoom_duration)
 
 # --- DÉPLACEMENT (Reste inchangé) ---
 func handle_keyboard_panning(delta):
