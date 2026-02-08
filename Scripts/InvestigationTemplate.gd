@@ -1,7 +1,7 @@
 extends Node2D
 
 # --- CONFIGURATION ---
-@onready var background_sprite = $BackgroundTemplate
+@onready var background = $BackgroundTemplate
 var hud_scene = preload("res://Scenes/InvestigationHUD.tscn")
 var hud_instance = null
 
@@ -30,7 +30,6 @@ var pending_object: InteractiveObject = null
 
 # --- RÉFÉRENCES ---
 @onready var camera = $Camera2D
-@onready var background = $Background
 
 func _ready():
 	target_zoom = camera.zoom.x
@@ -128,22 +127,29 @@ func connect_all_objects():
 # Fonction utilitaire pour créer la texture découpée
 func create_crop_texture(obj: InteractiveObject) -> AtlasTexture:
 	var atlas = AtlasTexture.new()
-	atlas.atlas = background_sprite.texture
+	# Assurez-vous que la variable pointe bien vers votre Sprite (ex: background ou background_sprite)
+	atlas.atlas = background.texture 
 	
-	# On récupère le rect de l'objet
-	var region = obj.get_panel_rect()
+	# 1. On récupère le rectangle de l'objet en coordonnées GLOBALES (Monde)
+	var global_rect = obj.get_panel_rect()
 	
-	# IMPORTANT : Le rect est en coordonnées globales, mais la texture est en local (0,0 au coin)
-	# Si votre background_sprite est centré (Centered = true), il faut compenser l'offset
-	# Si votre background_sprite est à (0,0) Centered=false, c'est direct.
-	# Supposons que le sprite est en (0,0) et non centré pour simplifier, sinon :
-	if background_sprite.centered:
-		var size = background_sprite.texture.get_size()
-		region.position += size / 2.0
-		# Ajustement selon la position du sprite lui-même
-		region.position -= background_sprite.position
+	# 2. On convertit ce rectangle vers l'espace LOCAL du Sprite
+	# Cela prend en compte automatiquement la Position, le Scale et la Rotation du Background
+	var to_local_transform = background.get_global_transform().affine_inverse()
 	
-	atlas.region = region
+	var top_left_local = to_local_transform * global_rect.position
+	var bottom_right_local = to_local_transform * (global_rect.position + global_rect.size)
+	
+	var local_rect = Rect2(top_left_local, bottom_right_local - top_left_local)
+	
+	# 3. Correction pour l'origine de la texture (Centered)
+	# Si le sprite est centré, le (0,0) local est au milieu de l'image.
+	# Or, pour une AtlasTexture, le (0,0) est toujours le coin haut-gauche.
+	if background.centered:
+		var tex_size = background.texture.get_size()
+		local_rect.position += tex_size / 2.0
+	
+	atlas.region = local_rect
 	return atlas
 
 # --- CŒUR DU GAMEPLAY : LE CLIC ---
