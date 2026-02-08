@@ -98,3 +98,55 @@ func animate_floating(node: Control):
 	
 	tween.tween_property(node, "position:y", -float_distance, duration).as_relative().set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
 	tween.tween_property(node, "position:y", float_distance, duration).as_relative().set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+	
+signal failure_animation_finished
+
+func trigger_failure_animation():
+	var active_cards = []
+	
+	# On récupère les cartes actives dans les slots
+	for container in [slot1_container, slot2_container, slot3_container]:
+		if container.visible:
+			var card = container.get_node_or_null("Card")
+			if card:
+				active_cards.append(card)
+	
+	# S'il n'y a rien à animer, on finit tout de suite
+	if active_cards.is_empty():
+		failure_animation_finished.emit()
+		return
+
+	# On crée un tween unique qui gère tout (ou on attend un timer)
+	var shake_duration = 0.5
+	
+	for card in active_cards:
+		# 1. On tue le tween de flottaison (douceur) pour prendre le contrôle
+		if active_tweens.has(card):
+			active_tweens[card].kill()
+			active_tweens.erase(card)
+		
+		# 2. Création du tween de secousse
+		var tween = create_tween()
+		
+		# On fait trembler la carte plusieurs fois
+		var shake_count = 10 
+		var intensity = 10.0 # Force du tremblement en pixels
+		
+		# Feedback couleur : on flashe en rouge
+		tween.tween_property(card, "modulate", Color(1, 0.3, 0.3), 0.1)
+		
+		# Boucle de secousses
+		for i in range(shake_count):
+			# On déplace aléatoirement autour de la position actuelle
+			var random_offset = Vector2(randf_range(-intensity, intensity), randf_range(-intensity, intensity))
+			tween.tween_property(card, "position", random_offset, shake_duration / shake_count).as_relative()
+		
+		# Retour à la couleur normale à la fin
+		tween.tween_property(card, "modulate", Color.WHITE, 0.1)
+
+	# 3. On attend que ça finisse avant de tout nettoyer
+	await get_tree().create_timer(shake_duration + 0.1).timeout
+	
+	# 4. On nettoie visuellement
+	clear_slots()
+	emit_signal("failure_animation_finished")

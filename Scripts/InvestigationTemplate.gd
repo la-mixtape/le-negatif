@@ -18,7 +18,7 @@ var hud_instance = null
 var target_zoom: float = 1.0
 var zoom_tween: Tween # On garde une référence au Tween pour pouvoir l'annuler si on re-scrolle vite
 var valid_chains = [
-	["DefaultObjectA", "DefaultObjectB", "DefaultObjectC"], 
+	["DefaultObjectA", "DefaultObjectC"], 
 	["objet_C", "objet_A"] # Note: objet_A fait partie de 2 chaînes
 ]
 # Liste des chaînes déjà trouvées par le joueur
@@ -104,7 +104,8 @@ func _apply_zoom_step(current_zoom_val: float, anchor: Vector2, start_offset: Ve
 	var new_offset = start_offset / zoom_factor
 	
 	camera.position = anchor + new_offset
-# --- DÉPLACEMENT (Reste inchangé) ---
+	
+# --- DÉPLACEMENT ---
 func handle_keyboard_panning(delta):
 	var direction = Input.get_vector("pan_left", "pan_right", "pan_up", "pan_down")
 	if direction != Vector2.ZERO:
@@ -237,11 +238,19 @@ func check_deduction_chain():
 		validate_chain_multi(found_chain_index)
 	
 	elif selected_objects.size() >= MAX_SLOTS:
-		# Si on a rempli tous les slots (3) sans trouver de chaîne valide
-		print("Mauvaise combinaison !")
-		# Optionnel : Ajouter un petit délai ou un son d'erreur ici
-		await get_tree().create_timer(0.5).timeout
-		cancel_selection()
+			# CAS D'ERREUR : Les slots sont pleins et aucune chaîne n'a été trouvée
+			print("Mauvaise combinaison !")
+			
+			# 1. On bloque les interactions temporairement (optionnel mais conseillé)
+			# set_process_input(false) 
+			
+			# 2. On lance l'animation de tremblement et on ATTEND qu'elle finisse
+			await hud_instance.trigger_failure_animation()
+			
+			# 3. Une fois l'animation finie, on annule la sélection logique
+			cancel_selection()
+		
+		# set_process_input(true)
 
 func validate_chain_multi(index_in_list: int):
 	print("SUCCÈS ! Déduction trouvée !")
