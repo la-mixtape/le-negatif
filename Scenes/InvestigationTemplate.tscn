@@ -11,7 +11,7 @@ max_zoom = 10.0
 zoom_duration = 1.0
 
 [node name="BackgroundTemplate" type="Sprite2D" parent="." unique_id=1762910297]
-position = Vector2(932, 543)
+position = Vector2(968, 536)
 scale = Vector2(1.174342, 1.1743422)
 texture = ExtResource("2_v48yd")
 
@@ -22,10 +22,10 @@ visual_node = NodePath("CollisionPolygon2D")
 manual_crop_frame = NodePath("CropFrame")
 
 [node name="CropFrame" type="ReferenceRect" parent="BackgroundTemplate/AreaObjectA" unique_id=1971300719]
-offset_left = -344.02243
+offset_left = -329.54617
 offset_top = -202.66666
-offset_right = -244.39221
-offset_bottom = -144.7619
+offset_right = -269.54617
+offset_bottom = -142.66666
 mouse_filter = 2
 border_color = Color(0.9192808, 4.47616e-06, 1.1551381e-06, 1)
 
@@ -44,10 +44,10 @@ visual_node = NodePath("CollisionPolygon2D")
 manual_crop_frame = NodePath("CropFrame")
 
 [node name="CropFrame" type="ReferenceRect" parent="BackgroundTemplate/AreaObjectB" unique_id=1735904386]
-offset_left = -343.1709
-offset_top = -87.70868
-offset_right = -238.4314
-offset_bottom = -18.733887
+offset_left = -331.24933
+offset_top = -88.56022
+offset_right = -261.24933
+offset_bottom = -18.560219
 mouse_filter = 2
 border_color = Color(0.9192808, 4.47616e-06, 1.1551381e-06, 1)
 metadata/_edit_use_anchors_ = true
@@ -67,10 +67,10 @@ visual_node = NodePath("CollisionPolygon2D")
 manual_crop_frame = NodePath("CropFrame")
 
 [node name="CropFrame" type="ReferenceRect" parent="BackgroundTemplate/AreaObjectC" unique_id=52139364]
-offset_left = -343.1709
-offset_top = -87.70868
-offset_right = -238.4314
-offset_bottom = -18.733887
+offset_left = 290.37537
+offset_top = -162.64424
+offset_right = 450.37537
+offset_bottom = -2.6442413
 mouse_filter = 2
 border_color = Color(0.9192808, 4.47616e-06, 1.1551381e-06, 1)
 metadata/_edit_use_anchors_ = true

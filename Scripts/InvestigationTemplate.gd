@@ -24,8 +24,8 @@ var valid_chains = [
 # Liste des chaînes déjà trouvées par le joueur
 var found_chains = []
 
-# L'objet actuellement en "Pending" (le premier clic)
-var pending_object: InteractiveObject = null
+var selected_objects: Array[InteractiveObject] = [] 
+const MAX_SLOTS = 3
 
 
 # --- RÉFÉRENCES ---
@@ -164,77 +164,98 @@ func create_crop_texture(obj: InteractiveObject) -> AtlasTexture:
 func _on_object_clicked(clicked_obj: InteractiveObject):
 	print("Objet cliqué : ", clicked_obj.object_id)
 	
-	# Cas 1 : Aucun objet en attente (Début de chaîne)
-	if pending_object == null:
-		start_pending_state(clicked_obj)
+	# 1. Gestion de la désélection (si on clique sur un objet déjà dans la liste)
+	if clicked_obj in selected_objects:
+		cancel_selection() # On annule tout pour simplifier, ou vous pouvez retirer juste celui-ci
 		return
-	
-	# Cas 2 : On clique sur le MÊME objet (Annulation)
-	if pending_object == clicked_obj:
-		cancel_pending_state()
+
+	# 2. Sécurité : Si on est déjà plein (ne devrait pas arriver si on gère bien le reset)
+	if selected_objects.size() >= MAX_SLOTS:
+		print("Slots pleins.")
 		return
-		
-	# Cas 3 : On a déjà un objet, on tente de valider la paire
-	attempt_deduction(pending_object, clicked_obj)
 
-# --- GESTION DES ÉTATS ---
-func start_pending_state(obj: InteractiveObject):
-	pending_object = obj
-	obj.set_state(InteractiveObject.State.SELECTED)
-	var crop = create_crop_texture(obj)
-	hud_instance.update_slot(0, crop)
+	# 3. Ajout de l'objet à la sélection
+	selected_objects.append(clicked_obj)
+	clicked_obj.set_state(InteractiveObject.State.SELECTED)
 	
-	print("HUD: Deduction Chain Pending...") 
+	# 4. Mise à jour du HUD
+	# L'index est la taille - 1 (ex: 1er objet = index 0, 2eme = index 1...)
+	var slot_index = selected_objects.size() - 1
+	var crop = create_crop_texture(clicked_obj)
+	hud_instance.update_slot(slot_index, crop)
+	
+	print("HUD: Objet ajouté au slot ", slot_index)
+	
+	# 5. Vérification des chaînes
+	check_deduction_chain()
 
-func cancel_pending_state():
-	if pending_object:
-		pending_object.set_state(InteractiveObject.State.IDLE) # Retour à la normale
+# --- GESTION DES ÉTATS ET VALIDATION ---
+
+func cancel_selection():
+	# On remet tous les objets sélectionnés en état normal
+	for obj in selected_objects:
+		obj.set_state(InteractiveObject.State.IDLE)
 	
-	pending_object = null
+	selected_objects.clear()
 	hud_instance.clear_slots()
-	print("HUD: Pending annulé.")
+	print("Sélection annulée.")
 
-# --- VALIDATION ---
-func attempt_deduction(obj1: InteractiveObject, obj2: InteractiveObject):
-	var chain_found = false
-	var chain_index = -1
-	var crop = create_crop_texture(obj2)
-	hud_instance.update_slot(1, crop)
+func check_deduction_chain():
+	# On convertit la sélection actuelle en liste d'IDs pour comparer
+	var current_ids = []
+	for obj in selected_objects:
+		current_ids.append(obj.object_id)
 	
-	# On vérifie si la paire [id1, id2] existe dans valid_chains
-	# On doit vérifier dans les deux sens (A,B ou B,A)
+	var found_chain_index = -1
+	
+	# On parcourt toutes les chaînes valides configurées
 	for i in range(valid_chains.size()):
 		var chain = valid_chains[i]
-		if (chain.has(obj1.object_id) and chain.has(obj2.object_id)):
-			# C'est une chaîne valide !
-			# Vérifions si on ne l'a pas déjà trouvée
-			if not found_chains.has(i):
-				validate_chain(i, obj1, obj2)
-				chain_found = true
-			else:
-				print("Déjà trouvé !")
-				cancel_pending_state()
-			break
+		
+		# Condition 1 : La taille doit correspondre (ex: on ne valide pas une chaîne de 3 avec seulement 2 objets)
+		if chain.size() == current_ids.size():
+			
+			# Condition 2 : Tous les éléments de la chaîne doivent être présents (l'ordre n'importe pas ici)
+			var match_all = true
+			for id in chain:
+				if not current_ids.has(id):
+					match_all = false
+					break
+			
+			if match_all:
+				# C'est une combinaison valide !
+				if not found_chains.has(i):
+					found_chain_index = i
+				else:
+					print("Cette déduction a déjà été trouvée.")
+					cancel_selection()
+					return
+				break
 	
-	if not chain_found:
+	# --- RÉSULTAT ---
+	if found_chain_index != -1:
+		validate_chain_multi(found_chain_index)
+	
+	elif selected_objects.size() >= MAX_SLOTS:
+		# Si on a rempli tous les slots (3) sans trouver de chaîne valide
 		print("Mauvaise combinaison !")
-		# Feedback d'erreur (secousse, son...)
-		cancel_pending_state()
+		# Optionnel : Ajouter un petit délai ou un son d'erreur ici
+		await get_tree().create_timer(0.5).timeout
+		cancel_selection()
 
-func validate_chain(index_in_list: int, obj1: InteractiveObject, obj2: InteractiveObject):
+func validate_chain_multi(index_in_list: int):
 	print("SUCCÈS ! Déduction trouvée !")
 	found_chains.append(index_in_list)
 	
-	# On remet l'objet 1 au repos (ou completed si nécessaire)
-	obj1.set_state(InteractiveObject.State.IDLE)
+	# On traite tous les objets de la sélection
+	for obj in selected_objects:
+		obj.set_state(InteractiveObject.State.IDLE)
+		check_object_completion(obj) # Vérifie si l'objet est "fini" (Cold)
 	
-	# On réinitialise l'état pending
-	pending_object = null
+	# Nettoyage
+	selected_objects.clear()
 	
-	# TODO: Mettre à jour l'écran des déductions
-	# TODO: Vérifier si obj1 ou obj2 sont totalement "Fini" (toutes leurs chaînes trouvées)
-	check_object_completion(obj1)
-	check_object_completion(obj2)
+	# Délai avant de vider le HUD pour laisser le joueur voir le résultat
 	await get_tree().create_timer(2.0).timeout
 	hud_instance.clear_slots()
 

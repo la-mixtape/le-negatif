@@ -21,19 +21,19 @@ theme_override_constants/separation = 20
 alignment = 1
 
 [node name="Slot1" type="TextureRect" parent="MarginContainer/VBoxContainer" unique_id=810266499]
-custom_minimum_size = Vector2(400, 300)
+custom_minimum_size = Vector2(300, 300)
 layout_mode = 2
 expand_mode = 1
 stretch_mode = 6
 
 [node name="Slot2" type="TextureRect" parent="MarginContainer/VBoxContainer" unique_id=96960577]
-custom_minimum_size = Vector2(400, 300)
+custom_minimum_size = Vector2(300, 300)
 layout_mode = 2
 expand_mode = 1
 stretch_mode = 6
 
 [node name="Slot3" type="TextureRect" parent="MarginContainer/VBoxContainer" unique_id=719789830]
-custom_minimum_size = Vector2(400, 300)
+custom_minimum_size = Vector2(300, 300)
 layout_mode = 2
 expand_mode = 1
 stretch_mode = 6
