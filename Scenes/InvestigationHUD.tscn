@@ -2,6 +2,21 @@
 
 [ext_resource type="Script" uid="uid://q6xvvdmlobky" path="res://Scripts/InvestigationHUD.gd" id="1_2ko31"]
 
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_2ko31"]
+bg_color = Color(0.122252695, 0.12225207, 0.12225223, 1)
+shadow_size = 5
+shadow_offset = Vector2(2, 2)
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_livvi"]
+bg_color = Color(0.12156863, 0.12156863, 0.12156863, 1)
+shadow_size = 5
+shadow_offset = Vector2(2, 2)
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_i6b8a"]
+bg_color = Color(0.12156863, 0.12156863, 0.12156863, 1)
+shadow_size = 5
+shadow_offset = Vector2(2, 2)
+
 [node name="InvestigationHud2" type="CanvasLayer" unique_id=2099193119]
 script = ExtResource("1_2ko31")
 
@@ -20,20 +35,125 @@ layout_mode = 2
 theme_override_constants/separation = 20
 alignment = 1
 
-[node name="Slot1" type="TextureRect" parent="MarginContainer/VBoxContainer" unique_id=810266499]
+[node name="Slot1" type="Control" parent="MarginContainer/VBoxContainer" unique_id=1342371392]
 custom_minimum_size = Vector2(300, 300)
 layout_mode = 2
-expand_mode = 1
-stretch_mode = 6
 
-[node name="Slot2" type="TextureRect" parent="MarginContainer/VBoxContainer" unique_id=96960577]
+[node name="Card" type="Panel" parent="MarginContainer/VBoxContainer/Slot1" unique_id=521024658]
 custom_minimum_size = Vector2(300, 300)
-layout_mode = 2
-expand_mode = 1
-stretch_mode = 6
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+grow_horizontal = 2
+grow_vertical = 2
+pivot_offset = Vector2(150, 150)
+mouse_filter = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_2ko31")
 
-[node name="Slot3" type="TextureRect" parent="MarginContainer/VBoxContainer" unique_id=719789830]
+[node name="Visual" type="TextureRect" parent="MarginContainer/VBoxContainer/Slot1/Card" unique_id=1296661454]
+texture_filter = 2
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+pivot_offset = Vector2(150, 150)
+expand_mode = 1
+stretch_mode = 5
+
+[node name="Frame" type="ReferenceRect" parent="MarginContainer/VBoxContainer/Slot1/Card/Visual" unique_id=533318709]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+border_color = Color(1, 1, 1, 1)
+border_width = 10.0
+editor_only = false
+
+[node name="Slot2" type="Control" parent="MarginContainer/VBoxContainer" unique_id=1942739401]
 custom_minimum_size = Vector2(300, 300)
 layout_mode = 2
+
+[node name="Card" type="Panel" parent="MarginContainer/VBoxContainer/Slot2" unique_id=648391951]
+custom_minimum_size = Vector2(300, 300)
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+grow_horizontal = 2
+grow_vertical = 2
+pivot_offset = Vector2(150, 150)
+mouse_filter = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_livvi")
+
+[node name="Visual" type="TextureRect" parent="MarginContainer/VBoxContainer/Slot2/Card" unique_id=572648875]
+texture_filter = 2
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+pivot_offset = Vector2(150, 150)
 expand_mode = 1
-stretch_mode = 6
+stretch_mode = 5
+
+[node name="Frame" type="ReferenceRect" parent="MarginContainer/VBoxContainer/Slot2/Card/Visual" unique_id=2108422858]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+border_color = Color(1, 1, 1, 1)
+border_width = 10.0
+editor_only = false
+
+[node name="Slot3" type="Control" parent="MarginContainer/VBoxContainer" unique_id=1457409017]
+custom_minimum_size = Vector2(300, 300)
+layout_mode = 2
+
+[node name="Card" type="Panel" parent="MarginContainer/VBoxContainer/Slot3" unique_id=1954004369]
+custom_minimum_size = Vector2(300, 300)
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+grow_horizontal = 2
+grow_vertical = 2
+pivot_offset = Vector2(150, 150)
+mouse_filter = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_i6b8a")
+
+[node name="Visual" type="TextureRect" parent="MarginContainer/VBoxContainer/Slot3/Card" unique_id=19905625]
+texture_filter = 2
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+pivot_offset = Vector2(150, 150)
+expand_mode = 1
+stretch_mode = 5
+
+[node name="Frame" type="ReferenceRect" parent="MarginContainer/VBoxContainer/Slot3/Card/Visual" unique_id=1533084301]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+border_color = Color(1, 1, 1, 1)
+border_width = 10.0
+editor_only = false

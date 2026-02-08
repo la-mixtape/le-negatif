@@ -25,7 +25,7 @@ var valid_chains = [
 var found_chains = []
 
 var selected_objects: Array[InteractiveObject] = [] 
-const MAX_SLOTS = 3
+const MAX_SLOTS = 4
 
 
 # --- RÉFÉRENCES ---
@@ -82,7 +82,7 @@ func start_zoom_tween(start_z: float, end_z: float, anchor: Vector2, start_offse
 	
 	# "TRANS_BACK" donne le petit effet de rebond. 
 	# Si vous trouvez ça trop "vivant", remplacez par TRANS_CUBIC ou TRANS_QUART pour du très doux.
-	zoom_tween.set_trans(Tween.TRANS_QUART).set_ease(Tween.EASE_OUT)
+	zoom_tween.set_trans(Tween.TRANS_QUINT).set_ease(Tween.EASE_OUT)
 	
 	# On anime une méthode personnalisée au lieu d'une propriété
 	# Cela garantit que Zoom et Position sont mis à jour EXACTEMENT en même temps
