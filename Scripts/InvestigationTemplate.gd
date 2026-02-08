@@ -13,6 +13,16 @@ extends Node2D
 # --- VARIABLES INTERNES ---
 var target_zoom: float = 1.0
 var zoom_tween: Tween # On garde une référence au Tween pour pouvoir l'annuler si on re-scrolle vite
+var valid_chains = [
+	["DefaultObjectA", "DefaultObjectB"], 
+	["objet_C", "objet_A"] # Note: objet_A fait partie de 2 chaînes
+]
+# Liste des chaînes déjà trouvées par le joueur
+var found_chains = []
+
+# L'objet actuellement en "Pending" (le premier clic)
+var pending_object: InteractableObject = null
+
 
 # --- RÉFÉRENCES ---
 @onready var camera = $Camera2D
@@ -20,6 +30,7 @@ var zoom_tween: Tween # On garde une référence au Tween pour pouvoir l'annuler
 
 func _ready():
 	target_zoom = camera.zoom.x
+	connect_all_objects()
 
 func _process(delta):
 	# On garde le Pan dans le process car c'est un mouvement continu
@@ -96,3 +107,97 @@ func handle_mouse_panning(event):
 	if event is InputEventMouseMotion:
 		if Input.is_mouse_button_pressed(MOUSE_BUTTON_RIGHT):
 			camera.position -= event.relative / camera.zoom
+
+func connect_all_objects():
+	# On cherche tous les noeuds enfants qui sont des InteractableObject
+	# (Assurez-vous que vos objets sont bien des enfants de la scène ou dans un dossier spécifique)
+	var interactables = find_children("*", "Area2D") # Ou un groupe spécifique
+	
+	for obj in interactables:
+		if obj is InteractableObject:
+			obj.object_clicked.connect(_on_object_clicked)
+
+# --- CŒUR DU GAMEPLAY : LE CLIC ---
+func _on_object_clicked(clicked_obj: InteractableObject):
+	print("Objet cliqué : ", clicked_obj.object_id)
+	
+	# Cas 1 : Aucun objet en attente (Début de chaîne)
+	if pending_object == null:
+		start_pending_state(clicked_obj)
+		return
+	
+	# Cas 2 : On clique sur le MÊME objet (Annulation)
+	if pending_object == clicked_obj:
+		cancel_pending_state()
+		return
+		
+	# Cas 3 : On a déjà un objet, on tente de valider la paire
+	attempt_deduction(pending_object, clicked_obj)
+
+# --- GESTION DES ÉTATS ---
+func start_pending_state(obj: InteractableObject):
+	pending_object = obj
+	obj.set_state(InteractableObject.State.SELECTED)
+	print("HUD: Deduction Chain Pending...") 
+	# TODO: Appeler ici votre fonction HUD pour afficher "Pending"
+
+func cancel_pending_state():
+	if pending_object:
+		pending_object.set_state(InteractableObject.State.IDLE) # Retour à la normale
+	
+	pending_object = null
+	print("HUD: Pending annulé.")
+	# TODO: Cacher le feedback HUD
+
+# --- VALIDATION ---
+func attempt_deduction(obj1: InteractableObject, obj2: InteractableObject):
+	var chain_found = false
+	var chain_index = -1
+	
+	# On vérifie si la paire [id1, id2] existe dans valid_chains
+	# On doit vérifier dans les deux sens (A,B ou B,A)
+	for i in range(valid_chains.size()):
+		var chain = valid_chains[i]
+		if (chain.has(obj1.object_id) and chain.has(obj2.object_id)):
+			# C'est une chaîne valide !
+			# Vérifions si on ne l'a pas déjà trouvée
+			if not found_chains.has(i):
+				validate_chain(i, obj1, obj2)
+				chain_found = true
+			else:
+				print("Déjà trouvé !")
+				cancel_pending_state()
+			break
+	
+	if not chain_found:
+		print("Mauvaise combinaison !")
+		# Feedback d'erreur (secousse, son...)
+		cancel_pending_state()
+
+func validate_chain(index_in_list: int, obj1: InteractableObject, obj2: InteractableObject):
+	print("SUCCÈS ! Déduction trouvée !")
+	found_chains.append(index_in_list)
+	
+	# On remet l'objet 1 au repos (ou completed si nécessaire)
+	obj1.set_state(InteractableObject.State.IDLE)
+	
+	# On réinitialise l'état pending
+	pending_object = null
+	
+	# TODO: Mettre à jour l'écran des déductions
+	# TODO: Vérifier si obj1 ou obj2 sont totalement "Fini" (toutes leurs chaînes trouvées)
+	check_object_completion(obj1)
+	check_object_completion(obj2)
+
+func check_object_completion(obj: InteractableObject):
+	# Vérifie si cet objet a encore des chaînes à découvrir
+	var still_active = false
+	for i in range(valid_chains.size()):
+		# Si l'objet est dans cette chaîne ET que cette chaîne n'est pas trouvée
+		if valid_chains[i].has(obj.object_id) and not found_chains.has(i):
+			still_active = true
+			break
+	
+	if not still_active:
+		obj.set_completed()
+		print("Objet ", obj.object_id, " entièrement résolu (Cold).")
