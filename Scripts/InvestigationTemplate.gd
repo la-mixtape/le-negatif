@@ -7,7 +7,7 @@ extends Node2D
 @export_group("Zoom")
 @export var zoom_step: float = 0.2     # Saut de zoom (un peu plus grand pour bien sentir l'effet)
 @export var min_zoom: float = 0.5
-@export var max_zoom: float = 2.5
+@export var max_zoom: float = 5
 @export var zoom_duration: float = 0.4 # Temps en secondes pour effectuer le zoom (plus c'est long, plus "l'atterrissage" est visible)
 
 # --- VARIABLES INTERNES ---
@@ -21,7 +21,7 @@ var valid_chains = [
 var found_chains = []
 
 # L'objet actuellement en "Pending" (le premier clic)
-var pending_object: InteractableObject = null
+var pending_object: InteractiveObject = null
 
 
 # --- RÉFÉRENCES ---
@@ -114,11 +114,11 @@ func connect_all_objects():
 	var interactables = find_children("*", "Area2D") # Ou un groupe spécifique
 	
 	for obj in interactables:
-		if obj is InteractableObject:
+		if obj is InteractiveObject:
 			obj.object_clicked.connect(_on_object_clicked)
 
 # --- CŒUR DU GAMEPLAY : LE CLIC ---
-func _on_object_clicked(clicked_obj: InteractableObject):
+func _on_object_clicked(clicked_obj: InteractiveObject):
 	print("Objet cliqué : ", clicked_obj.object_id)
 	
 	# Cas 1 : Aucun objet en attente (Début de chaîne)
@@ -135,22 +135,22 @@ func _on_object_clicked(clicked_obj: InteractableObject):
 	attempt_deduction(pending_object, clicked_obj)
 
 # --- GESTION DES ÉTATS ---
-func start_pending_state(obj: InteractableObject):
+func start_pending_state(obj: InteractiveObject):
 	pending_object = obj
-	obj.set_state(InteractableObject.State.SELECTED)
+	obj.set_state(InteractiveObject.State.SELECTED)
 	print("HUD: Deduction Chain Pending...") 
 	# TODO: Appeler ici votre fonction HUD pour afficher "Pending"
 
 func cancel_pending_state():
 	if pending_object:
-		pending_object.set_state(InteractableObject.State.IDLE) # Retour à la normale
+		pending_object.set_state(InteractiveObject.State.IDLE) # Retour à la normale
 	
 	pending_object = null
 	print("HUD: Pending annulé.")
 	# TODO: Cacher le feedback HUD
 
 # --- VALIDATION ---
-func attempt_deduction(obj1: InteractableObject, obj2: InteractableObject):
+func attempt_deduction(obj1: InteractiveObject, obj2: InteractiveObject):
 	var chain_found = false
 	var chain_index = -1
 	
@@ -174,12 +174,12 @@ func attempt_deduction(obj1: InteractableObject, obj2: InteractableObject):
 		# Feedback d'erreur (secousse, son...)
 		cancel_pending_state()
 
-func validate_chain(index_in_list: int, obj1: InteractableObject, obj2: InteractableObject):
+func validate_chain(index_in_list: int, obj1: InteractiveObject, obj2: InteractiveObject):
 	print("SUCCÈS ! Déduction trouvée !")
 	found_chains.append(index_in_list)
 	
 	# On remet l'objet 1 au repos (ou completed si nécessaire)
-	obj1.set_state(InteractableObject.State.IDLE)
+	obj1.set_state(InteractiveObject.State.IDLE)
 	
 	# On réinitialise l'état pending
 	pending_object = null
@@ -189,7 +189,7 @@ func validate_chain(index_in_list: int, obj1: InteractableObject, obj2: Interact
 	check_object_completion(obj1)
 	check_object_completion(obj2)
 
-func check_object_completion(obj: InteractableObject):
+func check_object_completion(obj: InteractiveObject):
 	# Vérifie si cet objet a encore des chaînes à découvrir
 	var still_active = false
 	for i in range(valid_chains.size()):
