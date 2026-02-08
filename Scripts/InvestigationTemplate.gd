@@ -1,6 +1,10 @@
 extends Node2D
 
 # --- CONFIGURATION ---
+@onready var background_sprite = $BackgroundTemplate
+var hud_scene = preload("res://Scenes/InvestigationHUD.tscn")
+var hud_instance = null
+
 @export_group("Déplacement (Pan)")
 @export var pan_speed: float = 600.0
 
@@ -30,6 +34,10 @@ var pending_object: InteractiveObject = null
 
 func _ready():
 	target_zoom = camera.zoom.x
+	
+	hud_instance = hud_scene.instantiate()
+	add_child(hud_instance) # On l'ajoute à la scène
+	
 	connect_all_objects()
 
 func _process(delta):
@@ -117,6 +125,27 @@ func connect_all_objects():
 		if obj is InteractiveObject:
 			obj.object_clicked.connect(_on_object_clicked)
 
+# Fonction utilitaire pour créer la texture découpée
+func create_crop_texture(obj: InteractiveObject) -> AtlasTexture:
+	var atlas = AtlasTexture.new()
+	atlas.atlas = background_sprite.texture
+	
+	# On récupère le rect de l'objet
+	var region = obj.get_panel_rect()
+	
+	# IMPORTANT : Le rect est en coordonnées globales, mais la texture est en local (0,0 au coin)
+	# Si votre background_sprite est centré (Centered = true), il faut compenser l'offset
+	# Si votre background_sprite est à (0,0) Centered=false, c'est direct.
+	# Supposons que le sprite est en (0,0) et non centré pour simplifier, sinon :
+	if background_sprite.centered:
+		var size = background_sprite.texture.get_size()
+		region.position += size / 2.0
+		# Ajustement selon la position du sprite lui-même
+		region.position -= background_sprite.position
+	
+	atlas.region = region
+	return atlas
+
 # --- CŒUR DU GAMEPLAY : LE CLIC ---
 func _on_object_clicked(clicked_obj: InteractiveObject):
 	print("Objet cliqué : ", clicked_obj.object_id)
@@ -138,21 +167,25 @@ func _on_object_clicked(clicked_obj: InteractiveObject):
 func start_pending_state(obj: InteractiveObject):
 	pending_object = obj
 	obj.set_state(InteractiveObject.State.SELECTED)
+	var crop = create_crop_texture(obj)
+	hud_instance.update_slot(0, crop)
+	
 	print("HUD: Deduction Chain Pending...") 
-	# TODO: Appeler ici votre fonction HUD pour afficher "Pending"
 
 func cancel_pending_state():
 	if pending_object:
 		pending_object.set_state(InteractiveObject.State.IDLE) # Retour à la normale
 	
 	pending_object = null
+	hud_instance.clear_slots()
 	print("HUD: Pending annulé.")
-	# TODO: Cacher le feedback HUD
 
 # --- VALIDATION ---
 func attempt_deduction(obj1: InteractiveObject, obj2: InteractiveObject):
 	var chain_found = false
 	var chain_index = -1
+	var crop = create_crop_texture(obj2)
+	hud_instance.update_slot(1, crop)
 	
 	# On vérifie si la paire [id1, id2] existe dans valid_chains
 	# On doit vérifier dans les deux sens (A,B ou B,A)
@@ -188,6 +221,8 @@ func validate_chain(index_in_list: int, obj1: InteractiveObject, obj2: Interacti
 	# TODO: Vérifier si obj1 ou obj2 sont totalement "Fini" (toutes leurs chaînes trouvées)
 	check_object_completion(obj1)
 	check_object_completion(obj2)
+	await get_tree().create_timer(2.0).timeout
+	hud_instance.clear_slots()
 
 func check_object_completion(obj: InteractiveObject):
 	# Vérifie si cet objet a encore des chaînes à découvrir

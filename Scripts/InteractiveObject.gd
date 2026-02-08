@@ -67,3 +67,36 @@ func _on_mouse_exited():
 
 func set_completed():
 	set_state(State.COMPLETED)
+
+# Retourne le rectangle (x, y, w, h) qui englobe le visuel de l'objet
+# Ce rectangle est en coordonnées LOCALES par rapport à la scène (Global)
+func get_panel_rect() -> Rect2:
+	if visual_node == null:
+		# Fallback : on retourne un carré de 100x100 autour de la position
+		return Rect2(global_position - Vector2(50,50), Vector2(100,100))
+	
+	# Si c'est un Polygon2D, on calcule sa bounding box
+	if visual_node is Polygon2D:
+		var min_vec = Vector2(INF, INF)
+		var max_vec = Vector2(-INF, -INF)
+		
+		# Le polygon est en local, on doit ajouter la position globale de l'objet
+		for point in visual_node.polygon:
+			# On applique la transformation (scale/rotation) du polygon s'il y en a
+			var world_point = visual_node.to_global(point)
+			min_vec.x = min(min_vec.x, world_point.x)
+			min_vec.y = min(min_vec.y, world_point.y)
+			max_vec.x = max(max_vec.x, world_point.x)
+			max_vec.y = max(max_vec.y, world_point.y)
+			
+		var size = max_vec - min_vec
+		# On ajoute une petite marge (padding) de 20px pour que ça respire
+		return Rect2(min_vec - Vector2(10,10), size + Vector2(20,20))
+		
+	# Si c'est un Sprite ou autre, on essaie d'utiliser get_rect()
+	if visual_node.has_method("get_rect"):
+		var r = visual_node.get_rect()
+		r.position += global_position
+		return r
+		
+	return Rect2(global_position, Vector2(100,100))

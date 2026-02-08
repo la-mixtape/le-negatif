@@ -1,0 +1,39 @@
+[gd_scene format=3 uid="uid://gr6q6c5lduak"]
+
+[ext_resource type="Script" uid="uid://q6xvvdmlobky" path="res://Scripts/InvestigationHUD.gd" id="1_2ko31"]
+
+[node name="InvestigationHud2" type="CanvasLayer" unique_id=2099193119]
+script = ExtResource("1_2ko31")
+
+[node name="MarginContainer" type="MarginContainer" parent="." unique_id=722149777]
+anchors_preset = 11
+anchor_left = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -20.0
+grow_horizontal = 0
+grow_vertical = 2
+theme_override_constants/margin_right = 20
+
+[node name="VBoxContainer" type="VBoxContainer" parent="MarginContainer" unique_id=452784481]
+layout_mode = 2
+theme_override_constants/separation = 20
+alignment = 1
+
+[node name="Slot1" type="TextureRect" parent="MarginContainer/VBoxContainer" unique_id=810266499]
+custom_minimum_size = Vector2(200, 150)
+layout_mode = 2
+expand_mode = 1
+stretch_mode = 6
+
+[node name="Slot2" type="TextureRect" parent="MarginContainer/VBoxContainer" unique_id=96960577]
+custom_minimum_size = Vector2(200, 150)
+layout_mode = 2
+expand_mode = 1
+stretch_mode = 6
+
+[node name="Slot3" type="TextureRect" parent="MarginContainer/VBoxContainer" unique_id=719789830]
+custom_minimum_size = Vector2(200, 150)
+layout_mode = 2
+expand_mode = 1
+stretch_mode = 6

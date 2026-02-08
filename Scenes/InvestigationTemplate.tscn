@@ -7,37 +7,37 @@
 [node name="InvestigationTemplate" type="Node2D" unique_id=1629418557]
 script = ExtResource("1_8ubl4")
 zoom_step = 1.0
-max_zoom = 20.0
+max_zoom = 10.0
 zoom_duration = 1.0
 
-[node name="Background" type="Sprite2D" parent="." unique_id=1762910297]
-position = Vector2(942.00006, 556)
+[node name="BackgroundTemplate" type="Sprite2D" parent="." unique_id=1762910297]
+position = Vector2(932, 543)
 scale = Vector2(1.174342, 1.1743422)
 texture = ExtResource("2_v48yd")
 
-[node name="AreaObjectA" type="Area2D" parent="Background" unique_id=235496366 node_paths=PackedStringArray("visual_node")]
+[node name="AreaObjectA" type="Area2D" parent="BackgroundTemplate" unique_id=235496366 node_paths=PackedStringArray("visual_node")]
 script = ExtResource("3_v48yd")
 object_id = "DefaultObjectA"
 visual_node = NodePath("CollisionPolygon2D")
 
-[node name="CollisionPolygon2D" type="CollisionPolygon2D" parent="Background/AreaObjectA" unique_id=1608961202]
+[node name="CollisionPolygon2D" type="CollisionPolygon2D" parent="BackgroundTemplate/AreaObjectA" unique_id=1608961202]
 position = Vector2(-326.14014, -169.45657)
 polygon = PackedVector2Array(11.070007, 11.92157, 14.476196, -24.694672, 36.616272, -29.803894, 40.873962, -4.2576904, 38.319336, 23.84314)
 
-[node name="VisualFeedback" type="Polygon2D" parent="Background/AreaObjectA/CollisionPolygon2D" unique_id=1583571755]
+[node name="VisualFeedback" type="Polygon2D" parent="BackgroundTemplate/AreaObjectA/CollisionPolygon2D" unique_id=1583571755]
 color = Color(0.43529412, 1, 1, 0.39215687)
 polygon = PackedVector2Array(40.873962, -1.703064, 37.467773, 23.84314, 11.070038, 10.218506, 15.327759, -28.10083, 38.319336, -30.655457)
 
-[node name="AreaObjectB" type="Area2D" parent="Background" unique_id=390969629 node_paths=PackedStringArray("visual_node")]
+[node name="AreaObjectB" type="Area2D" parent="BackgroundTemplate" unique_id=390969629 node_paths=PackedStringArray("visual_node")]
 script = ExtResource("3_v48yd")
 object_id = "DefaultObjectB"
 visual_node = NodePath("CollisionPolygon2D")
 
-[node name="CollisionPolygon2D" type="CollisionPolygon2D" parent="Background/AreaObjectB" unique_id=1978141572]
+[node name="CollisionPolygon2D" type="CollisionPolygon2D" parent="BackgroundTemplate/AreaObjectB" unique_id=1978141572]
 position = Vector2(-314.21857, -37.467785)
 polygon = PackedVector2Array(11.070007, 11.92157, 5.109253, -26.397766, 12.773132, -45.983185, 38.319336, -47.68628, 40.873962, -27.249298, 30.655457, -25.546204, 28.10083, 16.17926)
 
-[node name="VisualFeedback" type="Polygon2D" parent="Background/AreaObjectB/CollisionPolygon2D" unique_id=1436096292]
+[node name="VisualFeedback" type="Polygon2D" parent="BackgroundTemplate/AreaObjectB/CollisionPolygon2D" unique_id=1436096292]
 color = Color(0.43529412, 1, 1, 0.39607844)
 polygon = PackedVector2Array(12.773132, -42.577026, 36.616272, -49.389343, 40.873962, -31.506989, 29.803955, -23.84314, 28.10083, 16.17926, 11.070038, 14.476196, 5.109253, -25.546204)
 
