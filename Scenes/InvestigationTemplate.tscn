@@ -15,10 +15,19 @@ position = Vector2(932, 543)
 scale = Vector2(1.174342, 1.1743422)
 texture = ExtResource("2_v48yd")
 
-[node name="AreaObjectA" type="Area2D" parent="BackgroundTemplate" unique_id=235496366 node_paths=PackedStringArray("visual_node")]
+[node name="AreaObjectA" type="Area2D" parent="BackgroundTemplate" unique_id=235496366 node_paths=PackedStringArray("visual_node", "manual_crop_frame")]
 script = ExtResource("3_v48yd")
 object_id = "DefaultObjectA"
 visual_node = NodePath("CollisionPolygon2D")
+manual_crop_frame = NodePath("CropFrame")
+
+[node name="CropFrame" type="ReferenceRect" parent="BackgroundTemplate/AreaObjectA" unique_id=1971300719]
+offset_left = -344.02243
+offset_top = -202.66666
+offset_right = -244.39221
+offset_bottom = -144.7619
+mouse_filter = 2
+border_color = Color(0.9192808, 4.47616e-06, 1.1551381e-06, 1)
 
 [node name="CollisionPolygon2D" type="CollisionPolygon2D" parent="BackgroundTemplate/AreaObjectA" unique_id=1608961202]
 position = Vector2(-326.14014, -169.45657)
@@ -28,10 +37,19 @@ polygon = PackedVector2Array(11.070007, 11.92157, 14.476196, -24.694672, 36.6162
 color = Color(0.43529412, 1, 1, 0.39215687)
 polygon = PackedVector2Array(40.873962, -1.703064, 37.467773, 23.84314, 11.070038, 10.218506, 15.327759, -28.10083, 38.319336, -30.655457)
 
-[node name="AreaObjectB" type="Area2D" parent="BackgroundTemplate" unique_id=390969629 node_paths=PackedStringArray("visual_node")]
+[node name="AreaObjectB" type="Area2D" parent="BackgroundTemplate" unique_id=390969629 node_paths=PackedStringArray("visual_node", "manual_crop_frame")]
 script = ExtResource("3_v48yd")
 object_id = "DefaultObjectB"
 visual_node = NodePath("CollisionPolygon2D")
+manual_crop_frame = NodePath("CropFrame")
+
+[node name="CropFrame" type="ReferenceRect" parent="BackgroundTemplate/AreaObjectB" unique_id=1735904386]
+offset_left = -343.1709
+offset_top = -87.70868
+offset_right = -238.4314
+offset_bottom = -18.733887
+mouse_filter = 2
+border_color = Color(0.9192808, 4.47616e-06, 1.1551381e-06, 1)
 
 [node name="CollisionPolygon2D" type="CollisionPolygon2D" parent="BackgroundTemplate/AreaObjectB" unique_id=1978141572]
 position = Vector2(-314.21857, -37.467785)

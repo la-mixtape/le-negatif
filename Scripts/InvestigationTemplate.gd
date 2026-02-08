@@ -127,27 +127,35 @@ func connect_all_objects():
 # Fonction utilitaire pour créer la texture découpée
 func create_crop_texture(obj: InteractiveObject) -> AtlasTexture:
 	var atlas = AtlasTexture.new()
-	# Assurez-vous que la variable pointe bien vers votre Sprite (ex: background ou background_sprite)
-	atlas.atlas = background.texture 
+	# Assurez-vous que 'background' est bien votre Sprite2D principal
+	var bg_sprite = $BackgroundTemplate 
+	atlas.atlas = bg_sprite.texture 
 	
-	# 1. On récupère le rectangle de l'objet en coordonnées GLOBALES (Monde)
+	# 1. Récupération du rectangle cible (Global)
 	var global_rect = obj.get_panel_rect()
 	
-	# 2. On convertit ce rectangle vers l'espace LOCAL du Sprite
-	# Cela prend en compte automatiquement la Position, le Scale et la Rotation du Background
-	var to_local_transform = background.get_global_transform().affine_inverse()
+	# 2. Conversion Monde -> Sprite Local
+	# On annule la position, rotation et scale du Sprite pour retrouver les coordonnée brutes
+	var to_local = bg_sprite.get_global_transform().affine_inverse()
 	
-	var top_left_local = to_local_transform * global_rect.position
-	var bottom_right_local = to_local_transform * (global_rect.position + global_rect.size)
+	var top_left = to_local * global_rect.position
+	var bottom_right = to_local * (global_rect.position + global_rect.size)
+	var local_rect = Rect2(top_left, bottom_right - top_left)
 	
-	var local_rect = Rect2(top_left_local, bottom_right_local - top_left_local)
-	
-	# 3. Correction pour l'origine de la texture (Centered)
-	# Si le sprite est centré, le (0,0) local est au milieu de l'image.
-	# Or, pour une AtlasTexture, le (0,0) est toujours le coin haut-gauche.
-	if background.centered:
-		var tex_size = background.texture.get_size()
+	# 3. Gestion de l'origine (Centered)
+	if bg_sprite.centered:
+		var tex_size = bg_sprite.texture.get_size()
 		local_rect.position += tex_size / 2.0
+	
+	# 4. SÉCURITÉ : Clamper le rectangle pour qu'il ne sorte pas de l'image
+	# (Évite les bugs d'affichage ou les textures vides)
+	var tex_w = bg_sprite.texture.get_width()
+	var tex_h = bg_sprite.texture.get_height()
+	
+	# Si le rectangle est invalide ou nul, on force une petite zone de test au centre pour éviter d'afficher tout le fond
+	if local_rect.size.x <= 1 or local_rect.size.y <= 1:
+		print("Attention: Rect invalide pour ", obj.name, ". Utilisation fallback.")
+		local_rect = Rect2(tex_w/2 - 50, tex_h/2 - 50, 100, 100)
 	
 	atlas.region = local_rect
 	return atlas
