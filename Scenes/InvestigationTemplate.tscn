@@ -50,6 +50,7 @@ offset_right = -238.4314
 offset_bottom = -18.733887
 mouse_filter = 2
 border_color = Color(0.9192808, 4.47616e-06, 1.1551381e-06, 1)
+metadata/_edit_use_anchors_ = true
 
 [node name="CollisionPolygon2D" type="CollisionPolygon2D" parent="BackgroundTemplate/AreaObjectB" unique_id=1978141572]
 position = Vector2(-314.21857, -37.467785)
@@ -58,6 +59,29 @@ polygon = PackedVector2Array(11.070007, 11.92157, 5.109253, -26.397766, 12.77313
 [node name="VisualFeedback" type="Polygon2D" parent="BackgroundTemplate/AreaObjectB/CollisionPolygon2D" unique_id=1436096292]
 color = Color(0.43529412, 1, 1, 0.39607844)
 polygon = PackedVector2Array(12.773132, -42.577026, 36.616272, -49.389343, 40.873962, -31.506989, 29.803955, -23.84314, 28.10083, 16.17926, 11.070038, 14.476196, 5.109253, -25.546204)
+
+[node name="AreaObjectC" type="Area2D" parent="BackgroundTemplate" unique_id=1364210071 node_paths=PackedStringArray("visual_node", "manual_crop_frame")]
+script = ExtResource("3_v48yd")
+object_id = "DefaultObjectC"
+visual_node = NodePath("CollisionPolygon2D")
+manual_crop_frame = NodePath("CropFrame")
+
+[node name="CropFrame" type="ReferenceRect" parent="BackgroundTemplate/AreaObjectC" unique_id=52139364]
+offset_left = -343.1709
+offset_top = -87.70868
+offset_right = -238.4314
+offset_bottom = -18.733887
+mouse_filter = 2
+border_color = Color(0.9192808, 4.47616e-06, 1.1551381e-06, 1)
+metadata/_edit_use_anchors_ = true
+
+[node name="CollisionPolygon2D" type="CollisionPolygon2D" parent="BackgroundTemplate/AreaObjectC" unique_id=1349266013]
+position = Vector2(334.65546, -107.29411)
+polygon = PackedVector2Array(22.140137, 172.86273, 3.406128, 30.655457, 17.030884, -26.397736, 27.249268, -52.7955, 44.28015, -49.389343, 58.756348, -20.43695, 73.232544, 19.58545, 63.014038, 48.53781, 85.15405, 136.24649)
+
+[node name="VisualFeedback" type="Polygon2D" parent="BackgroundTemplate/AreaObjectC/CollisionPolygon2D" unique_id=1162855685]
+color = Color(0.43529412, 1, 1, 0.39607844)
+polygon = PackedVector2Array(26.397827, -46.834717, 36.616272, -49.389343, 49.389404, -42.577026, 69.826416, 1.7030945, 87.70874, 143.91037, 62.162476, 164.34735, 22.140137, 176.26892, 2.5546875, 34.061646, 6.812378, -2.5546265, 18.733887, -28.952362)
 
 [node name="Camera2D" type="Camera2D" parent="." unique_id=688279309]
 position = Vector2(961, 542)
