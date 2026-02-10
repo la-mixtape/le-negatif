@@ -133,7 +133,7 @@ func trigger_failure_animation():
 		var intensity = 10.0 # Force du tremblement en pixels
 		
 		# Feedback couleur : on flashe en rouge
-		tween.tween_property(card, "modulate", Color(1, 0.3, 0.3), 0.1)
+		# tween.tween_property(card, "modulate", Color(1, 0.3, 0.3), 0.1)
 		
 		# Boucle de secousses
 		for i in range(shake_count):

@@ -180,13 +180,15 @@ func _on_object_clicked(clicked_obj: InteractiveObject):
 	clicked_obj.set_state(InteractiveObject.State.SELECTED)
 	
 	# 4. Mise à jour du HUD
+	if DebugManager.use_legacy_hud:
 	# L'index est la taille - 1 (ex: 1er objet = index 0, 2eme = index 1...)
-	var slot_index = selected_objects.size() - 1
-	var crop = create_crop_texture(clicked_obj)
-	hud_instance.update_slot(slot_index, crop)
-	
-	print("HUD: Objet ajouté au slot ", slot_index)
-	
+		var slot_index = selected_objects.size() - 1
+		var crop = create_crop_texture(clicked_obj)
+		hud_instance.update_slot(slot_index, crop)	
+		print("HUD: Objet ajouté au slot ", slot_index)
+	else:
+				# Futur code (ou juste un log pour l'instant)
+		print("[NOUVEAU SYSTÈME] Objet sélectionné : ", clicked_obj.object_id)
 	# 5. Vérification des chaînes
 	check_deduction_chain()
 
@@ -198,59 +200,92 @@ func cancel_selection():
 		obj.set_state(InteractiveObject.State.IDLE)
 	
 	selected_objects.clear()
-	hud_instance.clear_slots()
-	print("Sélection annulée.")
+	if DebugManager.use_legacy_hud:
+		hud_instance.clear_slots()
+		print("Sélection annulée.")
+	else:
+		print("[NOUVEAU SYSTÈME] Clear selection requested")
 
 func check_deduction_chain():
-	# On convertit la sélection actuelle en liste d'IDs pour comparer
+	# 1. On récupère les IDs sélectionnés
 	var current_ids = []
 	for obj in selected_objects:
 		current_ids.append(obj.object_id)
 	
-	var found_chain_index = -1
+	print("Vérification : ", current_ids)
 	
-	# On parcourt toutes les chaînes valides configurées
+	var found_chain_index = -1
+	var is_subset_of_any_chain = false
+	
+	# 2. On analyse toutes les chaînes possibles
 	for i in range(valid_chains.size()):
 		var chain = valid_chains[i]
 		
-		# Condition 1 : La taille doit correspondre (ex: on ne valide pas une chaîne de 3 avec seulement 2 objets)
+		# --- TEST A : Correspondance Exacte (Victoire) ---
 		if chain.size() == current_ids.size():
-			
-			# Condition 2 : Tous les éléments de la chaîne doivent être présents (l'ordre n'importe pas ici)
-			var match_all = true
-			for id in chain:
-				if not current_ids.has(id):
-					match_all = false
-					break
-			
-			if match_all:
-				# C'est une combinaison valide !
-				if not found_chains.has(i):
-					found_chain_index = i
-				else:
-					print("Cette déduction a déjà été trouvée.")
-					cancel_selection()
-					return
-				break
+			if _lists_contain_same_items(chain, current_ids):
+				found_chain_index = i
+				break # Victoire trouvée, on arrête de chercher
+		
+		# --- TEST B : Sous-ensemble Valide (En cours...) ---
+		# Si la chaîne est plus grande que notre sélection, est-ce que notre sélection "rentre" dedans ?
+		elif chain.size() > current_ids.size():
+			if _is_list_subset(current_ids, chain):
+				is_subset_of_any_chain = true
+				# On ne break pas ici, car on veut savoir si c'est une correspondance exacte ailleurs
 	
-	# --- RÉSULTAT ---
+	# 3. Prise de décision
+	
 	if found_chain_index != -1:
+		# CAS 1 : C'est une chaîne complète (de 2 OU 3 objets) -> VICTOIRE
 		validate_chain_multi(found_chain_index)
 	
-	elif selected_objects.size() >= MAX_SLOTS:
-			# CAS D'ERREUR : Les slots sont pleins et aucune chaîne n'a été trouvée
-			print("Mauvaise combinaison !")
-			
-			# 1. On bloque les interactions temporairement (optionnel mais conseillé)
-			# set_process_input(false) 
-			
-			# 2. On lance l'animation de tremblement et on ATTEND qu'elle finisse
-			await hud_instance.trigger_failure_animation()
-			
-			# 3. Une fois l'animation finie, on annule la sélection logique
-			cancel_selection()
-		
-		# set_process_input(true)
+	elif is_subset_of_any_chain:
+		# CAS 2 : C'est un début valide -> ON ATTEND
+		# Sauf si on est déjà plein (ce qui ne devrait pas arriver si la logique est bonne, mais sécurité)
+		if selected_objects.size() >= MAX_SLOTS:
+			print("Slots pleins mais chaîne incomplète -> Erreur")
+			_trigger_failure()
+		else:
+			print("Combinaison valide pour l'instant... en attente de la suite.")
+	
+	else:
+		# CAS 3 : Ce n'est ni complet, ni un début valide -> ECHEC IMMÉDIAT
+		# Exemple : J'ai mis 2 objets qui ne vont nulle part ensemble.
+		print("Cul-de-sac logique détecté -> Erreur immédiate")
+		_trigger_failure()
+
+# --- FONCTIONS UTILITAIRES (À ajouter dans le script) ---
+
+# Vérifie si list_a contient les mêmes éléments que list_b (sans ordre)
+func _lists_contain_same_items(list_a: Array, list_b: Array) -> bool:
+	for item in list_a:
+		if not list_b.has(item): return false
+	return true
+
+# Vérifie si tous les éléments de 'small_list' sont dans 'big_list'
+func _is_list_subset(small_list: Array, big_list: Array) -> bool:
+	for item in small_list:
+		if not big_list.has(item): return false
+	return true
+
+# Gère l'échec (Rumble + Reset)
+func _trigger_failure():
+	# On désactive les clics pour éviter les bugs pendant l'anim
+	# Note : Assurez-vous d'avoir accès au root ou gérez un booléen "input_locked"
+	set_process_input(false) 
+	
+	if DebugManager.use_legacy_hud:
+		# On attend l'animation visuelle du vieux HUD
+		await hud_instance.trigger_failure_animation()
+	else:
+		# [NOUVEAU SYSTÈME]
+		# Ici, on mettra plus tard votre nouvelle animation.
+		# En attendant, on met juste un petit délai technique pour simuler le temps de feedback
+		print("[NOUVEAU SYSTÈME] Feedback d'échec (Simulation)")
+		await get_tree().create_timer(0.5).timeout	
+	set_process_input(true)
+	cancel_selection()
 
 func validate_chain_multi(index_in_list: int):
 	print("SUCCÈS ! Déduction trouvée !")
@@ -266,7 +301,11 @@ func validate_chain_multi(index_in_list: int):
 	
 	# Délai avant de vider le HUD pour laisser le joueur voir le résultat
 	await get_tree().create_timer(2.0).timeout
-	hud_instance.clear_slots()
+	if DebugManager.use_legacy_hud:
+		hud_instance.clear_slots()
+	else:
+		print ("Nouveau systeme tbd")
+		
 
 func check_object_completion(obj: InteractiveObject):
 	# Vérifie si cet objet a encore des chaînes à découvrir
