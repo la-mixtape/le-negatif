@@ -17,7 +17,7 @@ bg_color = Color(0.12156863, 0.12156863, 0.12156863, 1)
 shadow_size = 5
 shadow_offset = Vector2(2, 2)
 
-[node name="InvestigationHud2" type="CanvasLayer" unique_id=2099193119]
+[node name="InvestigationHUD" type="CanvasLayer" unique_id=2099193119]
 script = ExtResource("1_2ko31")
 
 [node name="MarginContainer" type="MarginContainer" parent="." unique_id=722149777]

@@ -179,16 +179,29 @@ func _on_object_clicked(clicked_obj: InteractiveObject):
 	selected_objects.append(clicked_obj)
 	clicked_obj.set_state(InteractiveObject.State.SELECTED)
 	
+	var crop = create_crop_texture(clicked_obj)
+	var slot_index = selected_objects.size() - 1
+	
 	# 4. Mise à jour du HUD
 	if DebugManager.use_legacy_hud:
 	# L'index est la taille - 1 (ex: 1er objet = index 0, 2eme = index 1...)
-		var slot_index = selected_objects.size() - 1
-		var crop = create_crop_texture(clicked_obj)
 		hud_instance.update_slot(slot_index, crop)	
 		print("HUD: Objet ajouté au slot ", slot_index)
 	else:
-				# Futur code (ou juste un log pour l'instant)
-		print("[NOUVEAU SYSTÈME] Objet sélectionné : ", clicked_obj.object_id)
+		# 1. Trouver les bornes de l'objet (Bounding Box)
+		# On suppose que l'objet a un CollisionShape2D ou un Sprite2D enfant
+		var visual_rect = Rect2()
+		
+		# Essai de récupération via CollisionShape (souvent le plus précis pour la zone interactive)
+		var col = clicked_obj.get_node_or_null("CollisionShape2D")
+		var sprite = clicked_obj.get_node_or_null("Sprite2D") # ou le nom de votre noeud image
+		
+		if col and col.shape:
+			visual_rect = col.shape.get_rect()
+			# Si le shape est décentré, on ajuste par rapport à la position de l'objet
+			visual_rect.position += col.position
+		elif sprite:
+			visual_rect = sprite.get_rect()
 	# 5. Vérification des chaînes
 	check_deduction_chain()
 
