@@ -1,7 +1,7 @@
 extends CanvasLayer
 
 # --- OPTIONS DU MENU ---
-var use_legacy_hud: bool = true
+var use_legacy_hud: bool = false
 
 # --- REFERENCES UI ---
 @onready var check_legacy = $PanelContainer/VBoxContainer/Check_LegacyHUD

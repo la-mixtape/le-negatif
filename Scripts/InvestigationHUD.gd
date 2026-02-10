@@ -75,62 +75,75 @@ func animate_card_arrival(start_screen_rect: Rect2, slot_index: int, texture: Te
 	
 	if not slot_control: return
 
-	# --- 1. SETUP (Identique à avant) ---
+	# --- 1. PRÉPARATION DE LA DESTINATION (La vraie carte) ---
 	var real_card = slot_control.get_node_or_null("Card")
 	if real_card:
 		var visual = real_card.get_node_or_null("Visual")
 		if visual: visual.texture = texture
 	
+	# IMPORTANT : On rend le slot visible pour que le layout se calcule
 	slot_control.visible = true 
-	real_card.visible = false 
 	
+	# ASTUCE : Au lieu de cacher la vraie carte (visible=false), on la rend transparente.
+	# Comme ça, elle occupe sa vraie place dans la colonne, et target_pos sera correct.
+	real_card.visible = true
+	real_card.modulate.a = 0.0 # Alpha à 0 = invisible mais présent physiquement
+	
+	# On force une mise à jour immédiate du layout pour être sûr que la position est bonne
+	# (Parfois nécessaire si le slot vient juste d'apparaître)
+	if slot_control.get_parent() is Container:
+		slot_control.get_parent().queue_sort()
+	
+	# --- 2. CRÉATION DU FLYER (La carte volante) ---
 	var flyer = real_card.duplicate()
 	add_child(flyer)
 	flyer.visible = true
+	flyer.modulate.a = 1.0 # Le flyer, lui, doit être bien visible !
 	flyer.rotation = 0
 	flyer.pivot_offset = Vector2.ZERO
 	
 	var flyer_visual = flyer.get_node_or_null("Visual")
 	if flyer_visual: flyer_visual.texture = texture
 	
-	# Positionnement initial
+	# Positionnement et taille initiale (Sur l'objet cliqué)
 	var target_size = real_card.size
-	flyer.size = target_size
+	# Sécurité pour éviter une division par zéro si la carte n'est pas encore redimensionnée
+	if target_size == Vector2.ZERO: target_size = Vector2(100, 140) 
 	var tween = create_tween()
 	
-	# ÉTAPE A : Pause statique
-	# Le tween attend 1.0 seconde avant de passer à la suite.
+	# A. Pause statique (Le joueur réalise ce qu'il a pris)
 	tween.tween_interval(1.0)
+	flyer.size = target_size
+	
 	var start_scale_x = start_screen_rect.size.x / target_size.x
 	var start_scale_y = start_screen_rect.size.y / target_size.y
-	var start_scale = Vector2(start_scale_x, start_scale_y)
 	
-	flyer.scale = start_scale
+	flyer.scale = Vector2(start_scale_x, start_scale_y)
 	flyer.global_position = start_screen_rect.position
 	
-		
-	# ÉTAPE A : Pause statique
-	# Le tween attend 1.0 seconde avant de passer à la suite.
-	tween.tween_interval(1.0)
+	# --- 3. ANIMATION ---
+
 	
-	# ÉTAPE B : Mouvement vers le HUD
-	# On active le mode "parallèle" pour que le mouvement et le scale se fassent en même temps
-	# après l'attente.
+	# B. Mouvement vers le slot
 	tween.set_parallel(true)
 	
-	slot_control.get_parent().queue_sort() 
+	# On récupère la position FINALE exacte maintenant que le layout est calé
 	var target_pos = real_card.global_position
 	
-	# On lance le mouvement et le redimensionnement
-	tween.tween_property(flyer, "global_position", target_pos, 0.6).set_trans(Tween.TRANS_EXPO).set_ease(Tween.EASE_OUT)
-	tween.tween_property(flyer, "scale", Vector2.ONE, 0.6).set_trans(Tween.TRANS_EXPO).set_ease(Tween.EASE_OUT)
+	# Mouvement : CUBIC + IN_OUT donne un mouvement plus naturel (lent au début, rapide, lent à la fin)
+	tween.tween_property(flyer, "global_position", target_pos, 0.8).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_IN_OUT)
 	
-	# ÉTAPE C : Nettoyage
-	# On utilise .chain() pour attendre que tout le bloc parallèle précédent soit fini
+	# Changement d'échelle : On le fait un peu plus vite pour que la carte ait sa taille finale avant de se poser
+	tween.tween_property(flyer, "scale", Vector2.ONE, 0.8).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	
+	# Rotation : Petit effet sympa, on remet la rotation à 0 proprement
+	tween.tween_property(flyer, "rotation", 0.0, 0.8)
+	
+	# --- 4. ARRIVÉE ---
 	tween.chain().tween_callback(func():
-		flyer.queue_free()
-		real_card.visible = true
-		animate_floating(real_card)
+		flyer.queue_free()          # On supprime la fausse carte
+		real_card.modulate.a = 1.0  # On rend la vraie carte opaque
+		animate_floating(real_card) # On lance l'animation de flottaison (idle)
 	)
 
 
