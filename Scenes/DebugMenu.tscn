@@ -23,7 +23,7 @@ layout_mode = 2
 text = "Debug Options
 "
 
-[node name="CheckBox" type="CheckBox" parent="PanelContainer/VBoxContainer" unique_id=1294394688]
+[node name="Check_LegacyHUD" type="CheckBox" parent="PanelContainer/VBoxContainer" unique_id=1294394688]
 layout_mode = 2
 button_pressed = true
 text = "Activer Feedback Colonne"
