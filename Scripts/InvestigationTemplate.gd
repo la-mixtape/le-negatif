@@ -161,6 +161,36 @@ func create_crop_texture(obj: InteractiveObject) -> AtlasTexture:
 	atlas.region = local_rect
 	return atlas
 
+func _get_object_screen_rect(obj: InteractiveObject) -> Rect2:
+	# 1. On cherche le ReferenceRect parmi les enfants de l'objet
+	var ref_rect: ReferenceRect = null
+	for child in obj.get_children():
+		if child is ReferenceRect:
+			ref_rect = child
+			break
+	
+	# Si on ne trouve pas de ReferenceRect, on renvoie un rect vide (ou on cherche un sprite)
+	if not ref_rect:
+		print("ERREUR: Pas de ReferenceRect trouvé dans ", obj.name)
+		return Rect2()
+
+	# 2. On utilise la transformation "Canvas" pour convertir du Monde vers l'Écran
+	# Cette fonction magique prend en compte la position de l'objet parent,
+	# la position locale du rect, ET le zoom/déplacement de la caméra.
+	var trans = ref_rect.get_global_transform_with_canvas()
+	
+	# 3. Calcul du rectangle final sur l'écran
+	# trans.origin = Le point (0,0) du ReferenceRect converti en pixels écran (coin haut-gauche)
+	var screen_pos = trans.origin 
+	
+	# trans.get_scale() = Le niveau de zoom de la caméra (ex: Vector2(2, 2) si zoom x2)
+	var screen_scale = trans.get_scale()
+	
+	# La taille sur l'écran est la taille originale multipliée par le zoom
+	var screen_size = ref_rect.size * screen_scale
+	
+	return Rect2(screen_pos, screen_size)
+
 # --- CŒUR DU GAMEPLAY : LE CLIC ---
 func _on_object_clicked(clicked_obj: InteractiveObject):
 	print("Objet cliqué : ", clicked_obj.object_id)
@@ -181,6 +211,7 @@ func _on_object_clicked(clicked_obj: InteractiveObject):
 	
 	var crop = create_crop_texture(clicked_obj)
 	var slot_index = selected_objects.size() - 1
+	var screen_rect = _get_object_screen_rect(clicked_obj)
 	
 	# 4. Mise à jour du HUD
 	if DebugManager.use_legacy_hud:
@@ -188,20 +219,12 @@ func _on_object_clicked(clicked_obj: InteractiveObject):
 		hud_instance.update_slot(slot_index, crop)	
 		print("HUD: Objet ajouté au slot ", slot_index)
 	else:
-		# 1. Trouver les bornes de l'objet (Bounding Box)
-		# On suppose que l'objet a un CollisionShape2D ou un Sprite2D enfant
-		var visual_rect = Rect2()
-		
-		# Essai de récupération via CollisionShape (souvent le plus précis pour la zone interactive)
-		var col = clicked_obj.get_node_or_null("CollisionShape2D")
-		var sprite = clicked_obj.get_node_or_null("Sprite2D") # ou le nom de votre noeud image
-		
-		if col and col.shape:
-			visual_rect = col.shape.get_rect()
-			# Si le shape est décentré, on ajuste par rapport à la position de l'objet
-			visual_rect.position += col.position
-		elif sprite:
-			visual_rect = sprite.get_rect()
+		if screen_rect.has_area():
+			hud_instance.animate_card_arrival(screen_rect, slot_index, crop)
+		else:
+			print("Erreur: Impossible de calculer la position écran pour l'animation.")
+			# Fallback : On met juste à jour le slot sans animation (ou anim par défaut)
+			hud_instance.update_slot(slot_index, crop)
 	# 5. Vérification des chaînes
 	check_deduction_chain()
 

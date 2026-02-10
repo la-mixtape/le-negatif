@@ -65,6 +65,8 @@ func _reset_slot(slot_control: Control):
 
 # --- ANIMATIONS ---
 
+# Dans InvestigationHUD.gd
+
 func animate_card_arrival(start_screen_rect: Rect2, slot_index: int, texture: Texture2D):
 	var slot_control = null
 	if slot_index == 0: slot_control = slot1_container
@@ -73,7 +75,7 @@ func animate_card_arrival(start_screen_rect: Rect2, slot_index: int, texture: Te
 	
 	if not slot_control: return
 
-	# 1. Préparation de la destination
+	# --- 1. SETUP (Identique à avant) ---
 	var real_card = slot_control.get_node_or_null("Card")
 	if real_card:
 		var visual = real_card.get_node_or_null("Visual")
@@ -82,56 +84,48 @@ func animate_card_arrival(start_screen_rect: Rect2, slot_index: int, texture: Te
 	slot_control.visible = true 
 	real_card.visible = false 
 	
-	# 2. Création du Flyer
 	var flyer = real_card.duplicate()
 	add_child(flyer)
 	flyer.visible = true
-	
-	# On s'assure que le flyer n'a pas de transformation résiduelle
 	flyer.rotation = 0
-	flyer.pivot_offset = Vector2.ZERO # Important pour que le positionnement soit précis
+	flyer.pivot_offset = Vector2.ZERO
 	
 	var flyer_visual = flyer.get_node_or_null("Visual")
-	if flyer_visual: 
-		flyer_visual.texture = texture
-		# On s'assure que le visuel remplit bien le flyer pour le calcul de scale
-		# (Dépend de votre setup UI, mais souvent nécessaire)
+	if flyer_visual: flyer_visual.texture = texture
 	
-	# --- C'EST ICI QUE LA MAGIE OPÈRE ---
-	
-	# A. On force la taille native du flyer pour le calcul
-	# (On suppose que la taille de base du prefab Card est la taille "1.0")
+	# Positionnement initial
 	var target_size = real_card.size
 	flyer.size = target_size
 	
-	# B. Calcul de l'échelle de départ
-	# On veut que (target_size * start_scale) = start_screen_rect.size
-	# Donc start_scale = start_screen_rect.size / target_size
-	# On prend le max ou la moyenne des axes pour garder les proportions si l'aspect ratio diffère
 	var start_scale_x = start_screen_rect.size.x / target_size.x
 	var start_scale_y = start_screen_rect.size.y / target_size.y
-	# On utilise un scale uniforme basé sur la largeur pour éviter les déformations bizarres,
-	# ou un scale vectoriel si vous voulez que ça stretch. Essayons Vectoriel pour "matcher" exactement.
 	var start_scale = Vector2(start_scale_x, start_scale_y)
 	
-	# C. Positionnement initial
 	flyer.scale = start_scale
 	flyer.global_position = start_screen_rect.position
 	
-	# 3. L'Animation
-	var tween = create_tween().set_parallel(true)
+	# --- 2. ANIMATION AVEC DÉLAI ---
 	
-	# Cible
+	var tween = create_tween()
+	
+	# ÉTAPE A : Pause statique
+	# Le tween attend 1.0 seconde avant de passer à la suite.
+	tween.tween_interval(1.0)
+	
+	# ÉTAPE B : Mouvement vers le HUD
+	# On active le mode "parallèle" pour que le mouvement et le scale se fassent en même temps
+	# après l'attente.
+	tween.set_parallel(true)
+	
 	slot_control.get_parent().queue_sort() 
 	var target_pos = real_card.global_position
 	
-	# Mouvement vers le slot
+	# On lance le mouvement et le redimensionnement
 	tween.tween_property(flyer, "global_position", target_pos, 0.6).set_trans(Tween.TRANS_EXPO).set_ease(Tween.EASE_OUT)
-	
-	# Changement d'échelle vers 1.0 (Taille normale de l'UI)
 	tween.tween_property(flyer, "scale", Vector2.ONE, 0.6).set_trans(Tween.TRANS_EXPO).set_ease(Tween.EASE_OUT)
 	
-	# Nettoyage
+	# ÉTAPE C : Nettoyage
+	# On utilise .chain() pour attendre que tout le bloc parallèle précédent soit fini
 	tween.chain().tween_callback(func():
 		flyer.queue_free()
 		real_card.visible = true
