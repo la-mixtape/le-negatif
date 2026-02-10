@@ -96,7 +96,11 @@ func animate_card_arrival(start_screen_rect: Rect2, slot_index: int, texture: Te
 	# Positionnement initial
 	var target_size = real_card.size
 	flyer.size = target_size
+	var tween = create_tween()
 	
+	# ÉTAPE A : Pause statique
+	# Le tween attend 1.0 seconde avant de passer à la suite.
+	tween.tween_interval(1.0)
 	var start_scale_x = start_screen_rect.size.x / target_size.x
 	var start_scale_y = start_screen_rect.size.y / target_size.y
 	var start_scale = Vector2(start_scale_x, start_scale_y)
@@ -104,10 +108,7 @@ func animate_card_arrival(start_screen_rect: Rect2, slot_index: int, texture: Te
 	flyer.scale = start_scale
 	flyer.global_position = start_screen_rect.position
 	
-	# --- 2. ANIMATION AVEC DÉLAI ---
-	
-	var tween = create_tween()
-	
+		
 	# ÉTAPE A : Pause statique
 	# Le tween attend 1.0 seconde avant de passer à la suite.
 	tween.tween_interval(1.0)
