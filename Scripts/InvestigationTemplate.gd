@@ -193,21 +193,18 @@ func _get_object_screen_rect(obj: InteractiveObject) -> Rect2:
 
 # --- CŒUR DU GAMEPLAY : LE CLIC ---
 func _on_object_clicked(clicked_obj: InteractiveObject):
-	print("Objet cliqué : ", clicked_obj.object_id)
-	
-	# 1. Gestion de la désélection
+	# SÉCURITÉS
 	if clicked_obj in selected_objects:
 		cancel_selection()
 		return
-
-	# 2. Sécurité
+	
 	if selected_objects.size() >= MAX_SLOTS:
-		print("Slots pleins.")
 		return
 
+	# On coupe les inputs pour garantir la séquence
 	set_process_input(false) 
 
-	# 3. Ajout de l'objet à la sélection
+	# MISE EN PLACE DONNÉES
 	selected_objects.append(clicked_obj)
 	clicked_obj.set_state(InteractiveObject.State.SELECTED)
 	
@@ -215,24 +212,21 @@ func _on_object_clicked(clicked_obj: InteractiveObject):
 	var slot_index = selected_objects.size() - 1
 	var screen_rect = _get_object_screen_rect(clicked_obj)
 	
-	# 4. Mise à jour du HUD avec attente de l'animation
-	if DebugManager.use_legacy_hud:
-		hud_instance.update_slot(slot_index, crop)	
-		# Petit délai artificiel si legacy, pour la cohérence
-		await get_tree().create_timer(0.2).timeout 
+	# ANIMATION / AFFICHAGE
+	if not DebugManager.use_legacy_hud and screen_rect.has_area():
+		# CAS MODERNE : On anime le vol de la carte.
+		# Note : animate_card_arrival s'occupe d'afficher la texture finale dans le slot à la fin.
+		# On n'appelle PAS update_slot ici pour éviter le "double affichage".
+		hud_instance.animate_card_arrival(screen_rect, slot_index, crop)
+		
+		# On attend exactement la durée du tween définie dans le HUD (0.6s)
+		await get_tree().create_timer(0.6).timeout
 	else:
-		if screen_rect.has_area():
-			hud_instance.animate_card_arrival(screen_rect, slot_index, crop)
-			
-			# --- C'EST ICI QUE TOUT SE JOUE ---
-			# On attend la durée de l'animation (ex: 0.5 ou 0.6 secondes).
-			# Ajustez cette valeur pour qu'elle corresponde exactement à la durée de votre Tween dans le HUD.
-			await get_tree().create_timer(0.6).timeout
-			
-		else:
-			hud_instance.update_slot(slot_index, crop)
-	
-	# 5. Vérification des chaînes (seulement une fois la carte posée)
+		# CAS LEGACY ou Fallback : On affiche direct
+		hud_instance.update_slot(slot_index, crop)
+		await get_tree().create_timer(0.1).timeout
+
+	# VÉRIFICATION LOGIQUE (Une fois l'animation finie)
 	check_deduction_chain()
 
 # --- GESTION DES ÉTATS ET VALIDATION ---
@@ -257,40 +251,49 @@ func check_deduction_chain():
 	var found_chain_index = -1
 	var is_subset_of_any_chain = false
 	
+	# Analyse des chaînes
 	for i in range(valid_chains.size()):
 		if found_chains.has(i): continue
 		var chain = valid_chains[i]
 		
+		# Correspondance EXACTE (Victoire)
 		if chain.size() == current_ids.size():
 			if _lists_contain_same_items(chain, current_ids):
 				found_chain_index = i
 				break
+		
+		# Sous-ensemble VALIDE (On continue)
 		elif chain.size() > current_ids.size():
 			if _is_list_subset(current_ids, chain):
 				is_subset_of_any_chain = true
 	
-	# --- Prise de décision et GESTION DES INPUTS ---
+	# --- PRISE DE DÉCISION ---
 	
 	if found_chain_index != -1:
-		# VICTOIRE : La fonction validate s'occupera de l'input
+		# CAS 1 : C'est GAGNÉ
+		print("Chain Complete!")
 		validate_chain_multi(found_chain_index)
 	
 	elif is_subset_of_any_chain:
+		# CAS 2 : C'est un bon début ("Keep Going")
 		if selected_objects.size() >= MAX_SLOTS:
-			print("Slots pleins mais chaîne incomplète -> Erreur")
-			_trigger_failure() # Gère son propre input
+			# Dommage, c'était bien parti mais plus de place
+			print("Slots pleins mais chaine incomplète.")
+			_trigger_failure()
 		else:
-			print("En attente de la suite.")
-			# --- IMPORTANT : On rend la main au joueur ---
+			# Tout va bien, on rend la main au joueur pour la suite
+			print("Valid subset, waiting for more...")
 			set_process_input(true)
 	
 	else:
+		# CAS 3 : Ce n'est pas bon
 		if current_ids.size() >= 2:
-			print("Erreur immédiate")
-			_trigger_failure() # Gère son propre input
+			# On a au moins 2 objets et ça ne matche rien -> ÉCHEC
+			print("Invalid combination.")
+			_trigger_failure()
 		else:
-			print("Exploration (1 seul objet)")
-			# --- IMPORTANT : On rend la main au joueur ---
+			# On a 1 seul objet, il ne matche rien (bizarre mais possible) -> On laisse explorer
+			print("Single object selection.")
 			set_process_input(true)
 
 # --- FONCTIONS UTILITAIRES (À ajouter dans le script) ---
@@ -309,22 +312,29 @@ func _is_list_subset(small_list: Array, big_list: Array) -> bool:
 
 # Gère l'échec (Rumble + Reset)
 func _trigger_failure():
-	# On désactive les clics pour éviter les bugs pendant l'anim
-	# Note : Assurez-vous d'avoir accès au root ou gérez un booléen "input_locked"
-	set_process_input(false) 
+	print("Triggering Failure Sequence")
 	
-	if DebugManager.use_legacy_hud:
-		# On attend l'animation visuelle du vieux HUD
-		await hud_instance.trigger_failure_animation()
+	# 1. Feedback visuel via le HUD
+	# On utilise la fonction existante 'trigger_failure_animation' qui secoue les cartes
+	if hud_instance.has_method("trigger_failure_animation"):
+		hud_instance.trigger_failure_animation()
+		# On attend que le HUD signale que l'animation (et le nettoyage visuel) est finie
+		await hud_instance.failure_animation_finished
 	else:
-		# [NOUVEAU SYSTÈME]
-		# Ici, on mettra plus tard votre nouvelle animation.
-		# En attendant, on met juste un petit délai technique pour simuler le temps de feedback
-		print("[NOUVEAU SYSTÈME] Feedback d'échec (Simulation)")
-		await hud_instance.trigger_failure_animation()
-		
+		# Fallback de sécurité
+		hud_instance.clear_slots()
+		await get_tree().create_timer(0.5).timeout
+	
+	# 2. Nettoyage des données logiques (après le visuel)
+	selected_objects.clear()
+	
+	# 3. Reset des objets dans la scène (désélection)
+	for obj in get_tree().get_nodes_in_group("interactive_objects"):
+		if obj.state == InteractiveObject.State.SELECTED:
+			obj.set_state(InteractiveObject.State.IDLE)
+			
+	# 4. On rend la main au joueur
 	set_process_input(true)
-	cancel_selection()
 
 func validate_chain_multi(index_in_list: int):
 	print("SUCCÈS ! Déduction trouvée !")
