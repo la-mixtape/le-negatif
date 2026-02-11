@@ -195,15 +195,17 @@ func _get_object_screen_rect(obj: InteractiveObject) -> Rect2:
 func _on_object_clicked(clicked_obj: InteractiveObject):
 	print("Objet cliqué : ", clicked_obj.object_id)
 	
-	# 1. Gestion de la désélection (si on clique sur un objet déjà dans la liste)
+	# 1. Gestion de la désélection
 	if clicked_obj in selected_objects:
-		cancel_selection() # On annule tout pour simplifier, ou vous pouvez retirer juste celui-ci
+		cancel_selection()
 		return
 
-	# 2. Sécurité : Si on est déjà plein (ne devrait pas arriver si on gère bien le reset)
+	# 2. Sécurité
 	if selected_objects.size() >= MAX_SLOTS:
 		print("Slots pleins.")
 		return
+
+	set_process_input(false) 
 
 	# 3. Ajout de l'objet à la sélection
 	selected_objects.append(clicked_obj)
@@ -213,19 +215,24 @@ func _on_object_clicked(clicked_obj: InteractiveObject):
 	var slot_index = selected_objects.size() - 1
 	var screen_rect = _get_object_screen_rect(clicked_obj)
 	
-	# 4. Mise à jour du HUD
+	# 4. Mise à jour du HUD avec attente de l'animation
 	if DebugManager.use_legacy_hud:
-	# L'index est la taille - 1 (ex: 1er objet = index 0, 2eme = index 1...)
 		hud_instance.update_slot(slot_index, crop)	
-		print("HUD: Objet ajouté au slot ", slot_index)
+		# Petit délai artificiel si legacy, pour la cohérence
+		await get_tree().create_timer(0.2).timeout 
 	else:
 		if screen_rect.has_area():
 			hud_instance.animate_card_arrival(screen_rect, slot_index, crop)
+			
+			# --- C'EST ICI QUE TOUT SE JOUE ---
+			# On attend la durée de l'animation (ex: 0.5 ou 0.6 secondes).
+			# Ajustez cette valeur pour qu'elle corresponde exactement à la durée de votre Tween dans le HUD.
+			await get_tree().create_timer(0.6).timeout
+			
 		else:
-			print("Erreur: Impossible de calculer la position écran pour l'animation.")
-			# Fallback : On met juste à jour le slot sans animation (ou anim par défaut)
 			hud_instance.update_slot(slot_index, crop)
-	# 5. Vérification des chaînes
+	
+	# 5. Vérification des chaînes (seulement une fois la carte posée)
 	check_deduction_chain()
 
 # --- GESTION DES ÉTATS ET VALIDATION ---
@@ -243,64 +250,48 @@ func cancel_selection():
 		print("[NOUVEAU SYSTÈME] Clear selection requested")
 
 func check_deduction_chain():
-	# 1. On récupère les IDs sélectionnés
 	var current_ids = []
 	for obj in selected_objects:
 		current_ids.append(obj.object_id)
 	
-	print("Vérification : ", current_ids)
-	
 	var found_chain_index = -1
 	var is_subset_of_any_chain = false
 	
-	# 2. On analyse toutes les chaînes possibles
 	for i in range(valid_chains.size()):
-		# Optionnel : On peut ignorer les chaînes déjà trouvées pour éviter les doublons
-		if found_chains.has(i):
-			continue
-			
+		if found_chains.has(i): continue
 		var chain = valid_chains[i]
 		
-		# --- TEST A : Correspondance Exacte (Victoire) ---
 		if chain.size() == current_ids.size():
 			if _lists_contain_same_items(chain, current_ids):
 				found_chain_index = i
-				break # Victoire trouvée, on arrête de chercher
-		
-		# --- TEST B : Sous-ensemble Valide ---
-		# Si la chaîne est plus grande que notre sélection, est-ce que notre sélection "rentre" dedans ?
+				break
 		elif chain.size() > current_ids.size():
 			if _is_list_subset(current_ids, chain):
 				is_subset_of_any_chain = true
-				# On ne break pas ici, car on veut savoir si c'est une correspondance exacte ailleurs
 	
-	# 3. Prise de décision
+	# --- Prise de décision et GESTION DES INPUTS ---
 	
 	if found_chain_index != -1:
-		# CAS 1 : C'est une chaîne complète -> VICTOIRE
+		# VICTOIRE : La fonction validate s'occupera de l'input
 		validate_chain_multi(found_chain_index)
 	
 	elif is_subset_of_any_chain:
-		# CAS 2 : C'est un début valide -> ON ATTEND
-		# Sauf si on est déjà plein
 		if selected_objects.size() >= MAX_SLOTS:
 			print("Slots pleins mais chaîne incomplète -> Erreur")
-			_trigger_failure()
+			_trigger_failure() # Gère son propre input
 		else:
-			print("Combinaison valide pour l'instant... en attente de la suite.")
+			print("En attente de la suite.")
+			# --- IMPORTANT : On rend la main au joueur ---
+			set_process_input(true)
 	
 	else:
-		# CAS 3 : Ce n'est ni complet, ni un début valide
-		
-		# --- MODIFICATION ---
-		# On vérifie si le joueur a sélectionné au moins 2 objets avant de le punir.
 		if current_ids.size() >= 2:
-			print("Incohérence détectée entre plusieurs objets -> Erreur immédiate")
-			_trigger_failure()
+			print("Erreur immédiate")
+			_trigger_failure() # Gère son propre input
 		else:
-			# Si on a 1 seul objet et qu'il n'est dans aucune chaîne (ou aucune chaîne restante),
-			# on ne fait rien. Le joueur peut le désélectionner ou tenter d'en ajouter un autre.
-			print("Objet seul hors chaîne (ou chaîne déjà finie) -> Pas d'erreur (exploration)")
+			print("Exploration (1 seul objet)")
+			# --- IMPORTANT : On rend la main au joueur ---
+			set_process_input(true)
 
 # --- FONCTIONS UTILITAIRES (À ajouter dans le script) ---
 
@@ -339,17 +330,17 @@ func validate_chain_multi(index_in_list: int):
 	print("SUCCÈS ! Déduction trouvée !")
 	found_chains.append(index_in_list)
 	
-	# On traite tous les objets de la sélection
 	for obj in selected_objects:
 		obj.set_state(InteractiveObject.State.IDLE)
-		check_object_completion(obj) # Vérifie si l'objet est "fini" (Cold)
+		check_object_completion(obj)
 	
-	# Nettoyage
 	selected_objects.clear()
 	
-	# Délai avant de vider le HUD pour laisser le joueur voir le résultat
 	await get_tree().create_timer(2.0).timeout
 	hud_instance.clear_slots()
+	
+	# --- IMPORTANT : On rend la main au joueur après la validation ---
+	set_process_input(true)
 
 		
 
