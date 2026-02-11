@@ -17,6 +17,7 @@ texture = ExtResource("2_v48yd")
 
 [node name="AreaObjectA" type="Area2D" parent="BackgroundTemplate" unique_id=235496366 node_paths=PackedStringArray("visual_node", "manual_crop_frame")]
 script = ExtResource("3_v48yd")
+object_id = "DefaultObjectA"
 visual_node = NodePath("CollisionPolygon2D/VisualFeedback")
 manual_crop_frame = NodePath("CropFrame")
 
@@ -38,6 +39,7 @@ polygon = PackedVector2Array(40.873962, -1.703064, 37.467773, 23.84314, 11.07003
 
 [node name="AreaObjectB" type="Area2D" parent="BackgroundTemplate" unique_id=390969629 node_paths=PackedStringArray("visual_node", "manual_crop_frame")]
 script = ExtResource("3_v48yd")
+object_id = "DefaultObjectB"
 visual_node = NodePath("CollisionPolygon2D/VisualFeedback")
 manual_crop_frame = NodePath("CropFrame")
 
@@ -60,6 +62,7 @@ polygon = PackedVector2Array(12.773132, -42.577026, 36.616272, -49.389343, 40.87
 
 [node name="AreaObjectC" type="Area2D" parent="BackgroundTemplate" unique_id=1364210071 node_paths=PackedStringArray("visual_node", "manual_crop_frame")]
 script = ExtResource("3_v48yd")
+object_id = "DefaultObjectC"
 visual_node = NodePath("CollisionPolygon2D/VisualFeedback")
 manual_crop_frame = NodePath("CropFrame")
 
