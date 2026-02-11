@@ -117,7 +117,7 @@ func animate_card_arrival(start_screen_rect: Rect2, slot_index: int, texture: Te
 	# --- 4. PAUSE DRAMATIQUE (LA MÉTHODE FORTE) ---
 	# Le code s'arrête ici pendant 1.0 seconde. 
 	# L'image reste affichée immobile sur la scène.
-	await get_tree().create_timer(1.0).timeout
+	await get_tree().create_timer(0.6).timeout
 	
 	# --- 5. CALCUL DE LA DESTINATION ---
 	# On le fait MAINTENANT, après la pause, pour avoir la position exacte 
@@ -129,10 +129,10 @@ func animate_card_arrival(start_screen_rect: Rect2, slot_index: int, texture: Te
 	tween.set_parallel(true) # Mouvement et Scale en même temps
 	
 	# Glissement vers le slot
-	tween.tween_property(flyer, "global_position", target_pos, 0.6).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+	tween.tween_property(flyer, "global_position", target_pos, 0.4).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
 	
 	# Retour à l'échelle normale
-	tween.tween_property(flyer, "scale", Vector2.ONE, 0.6).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	tween.tween_property(flyer, "scale", Vector2.ONE, 0.4).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 	
 	# --- 7. ARRIVÉE ---
 	# Une fois les 0.6s passées

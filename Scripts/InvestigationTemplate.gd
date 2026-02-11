@@ -18,8 +18,8 @@ var hud_instance = null
 var target_zoom: float = 1.0
 var zoom_tween: Tween # On garde une référence au Tween pour pouvoir l'annuler si on re-scrolle vite
 var valid_chains = [
-	["DefaultObjectA", "DefaultObjectC"], 
-	["DefaultObjectA", "DefaultObjectB"] # Note: objet_A fait partie de 2 chaînes
+	["DefaultObjectA", "DefaultObjectB", "DefaultObjectC"], 
+	["test", "test"] # Note: objet_A fait partie de 2 chaînes
 ]
 # Liste des chaînes déjà trouvées par le joueur
 var found_chains = []
