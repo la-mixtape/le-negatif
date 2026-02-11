@@ -12,6 +12,9 @@ signal object_clicked(obj_ref)
 
 @export var manual_crop_frame: ReferenceRect
 
+var border_shader = preload("res://Resources/dashed_border.gdshader") 
+var highlight_rect: ColorRect = null
+
 # --- ÉTATS ---
 enum State { IDLE, HOVER, SELECTED, COMPLETED }
 var current_state = State.IDLE
@@ -27,6 +30,19 @@ func _ready():
 		visual_node.visible = false
 	else:
 		push_warning("Attention : Aucun visual_node assigné pour l'objet " + name)
+
+# On crée dynamiquement un ColorRect qui servira de bordure
+	highlight_rect = ColorRect.new()
+	highlight_rect.name = "HighlightBorder"
+	highlight_rect.mouse_filter = Control.MOUSE_FILTER_IGNORE # Important pour ne pas bloquer le clic
+	
+	# Configuration du Shader
+	var shader_mat = ShaderMaterial.new()
+	shader_mat.shader = border_shader
+	highlight_rect.material = shader_mat
+	
+	add_child(highlight_rect)
+	highlight_rect.visible = false # Caché par défaut
 
 	# Connexions
 	mouse_entered.connect(_on_mouse_entered)
@@ -45,19 +61,48 @@ func set_state(new_state):
 
 func _update_visuals():
 	if visual_node == null: return
+	if visual_node:
+		match current_state:
+			State.IDLE:
+				visual_node.visible = false
+				visual_node.modulate = Color(1, 1, 1, 1)
+			State.HOVER:
+				visual_node.visible = true
+				visual_node.modulate = Color(1, 1, 1, 0.5) # Semi-transparent
+			State.SELECTED:
+				visual_node.visible = true
+				visual_node.modulate = Color(1, 0.8, 0.2, 0.8) # Orange
+			State.COMPLETED:
+				visual_node.visible = false # Ou une autre indication "Cold"
+	if highlight_rect:
+		match current_state:
+			State.HOVER, State.SELECTED:
+				highlight_rect.visible = true
+				_adjust_highlight_rect() # On s'assure qu'il est bien placé
+				
+				# Optionnel : Changer la couleur ou vitesse selon l'état
+				if current_state == State.SELECTED:
+					(highlight_rect.material as ShaderMaterial).set_shader_parameter("color", Color(0.2, 1.0, 0.2)) # Vert si sélectionné ?
+				else:
+					(highlight_rect.material as ShaderMaterial).set_shader_parameter("color", Color(1.0, 0.8, 0.2)) # Orange au survol
+					
+			State.IDLE, State.COMPLETED:
+				highlight_rect.visible = false
+
+func _adjust_highlight_rect():
+	var rect_global = get_panel_rect() 
 	
-	match current_state:
-		State.IDLE:
-			visual_node.visible = false
-			visual_node.modulate = Color(1, 1, 1, 1)
-		State.HOVER:
-			visual_node.visible = true
-			visual_node.modulate = Color(1, 1, 1, 0.5) # Semi-transparent
-		State.SELECTED:
-			visual_node.visible = true
-			visual_node.modulate = Color(1, 0.8, 0.2, 0.8) # Orange
-		State.COMPLETED:
-			visual_node.visible = false # Ou une autre indication "Cold"
+	# Conversion position globale -> locale
+	var local_pos = to_local(rect_global.position)
+	
+	highlight_rect.position = local_pos
+	highlight_rect.size = rect_global.size
+	
+	# --- AJOUT CRUCIAL ---
+	# On envoie la taille réelle au shader pour qu'il dessine les bords correctement
+	var mat = highlight_rect.material as ShaderMaterial
+	if mat:
+		mat.set_shader_parameter("rect_size", highlight_rect.size)
 
 func _on_mouse_entered():
 	if current_state == State.IDLE:
