@@ -82,9 +82,9 @@ func _update_visuals():
 				
 				# Optionnel : Changer la couleur ou vitesse selon l'état
 				if current_state == State.SELECTED:
-					(highlight_rect.material as ShaderMaterial).set_shader_parameter("color", Color(0.2, 1.0, 0.2)) # Vert si sélectionné ?
+					(highlight_rect.material as ShaderMaterial).set_shader_parameter("color", Color(1.0, 1.0, 1.0, 1.0)) # Vert si sélectionné ?
 				else:
-					(highlight_rect.material as ShaderMaterial).set_shader_parameter("color", Color(1.0, 0.8, 0.2)) # Orange au survol
+					(highlight_rect.material as ShaderMaterial).set_shader_parameter("color", Color(1.0, 1.0, 1.0, 1.0)) # Orange au survol
 					
 			State.IDLE, State.COMPLETED:
 				highlight_rect.visible = false
@@ -92,14 +92,18 @@ func _update_visuals():
 func _adjust_highlight_rect():
 	var rect_global = get_panel_rect() 
 	
-	# Conversion position globale -> locale
-	var local_pos = to_local(rect_global.position)
+	# --- CORRECTION ---
+	# On passe le rectangle en "Top Level". 
+	# Cela lui permet d'ignorer le Scale/Rotation du parent (InteractiveObject)
+	# et de se caler parfaitement sur les coordonnées globales.
+	if not highlight_rect.top_level:
+		highlight_rect.set_as_top_level(true)
 	
-	highlight_rect.position = local_pos
+	# On utilise maintenant les coordonnées GLOBALES directement
+	highlight_rect.global_position = rect_global.position
 	highlight_rect.size = rect_global.size
 	
-	# --- AJOUT CRUCIAL ---
-	# On envoie la taille réelle au shader pour qu'il dessine les bords correctement
+	# Envoi de la taille au shader (comme vu précédemment)
 	var mat = highlight_rect.material as ShaderMaterial
 	if mat:
 		mat.set_shader_parameter("rect_size", highlight_rect.size)
