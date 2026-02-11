@@ -4,6 +4,8 @@ extends CanvasLayer
 @onready var slot2_container = $MarginContainer/VBoxContainer/Slot2
 @onready var slot3_container = $MarginContainer/VBoxContainer/Slot3
 
+signal card_arrival_finished
+
 var active_tweens = {}
 
 func _ready():
@@ -139,6 +141,7 @@ func animate_card_arrival(start_screen_rect: Rect2, slot_index: int, texture: Te
 		if real_card:
 			real_card.modulate.a = 1.0
 			animate_floating(real_card)
+		card_arrival_finished.emit()
 	)
 
 

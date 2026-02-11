@@ -197,14 +197,12 @@ func _on_object_clicked(clicked_obj: InteractiveObject):
 	if clicked_obj in selected_objects:
 		cancel_selection()
 		return
-	
 	if selected_objects.size() >= MAX_SLOTS:
 		return
 
-	# On coupe les inputs pour garantir la séquence
 	set_process_input(false) 
 
-	# MISE EN PLACE DONNÉES
+	# DONNÉES
 	selected_objects.append(clicked_obj)
 	clicked_obj.set_state(InteractiveObject.State.SELECTED)
 	
@@ -212,21 +210,20 @@ func _on_object_clicked(clicked_obj: InteractiveObject):
 	var slot_index = selected_objects.size() - 1
 	var screen_rect = _get_object_screen_rect(clicked_obj)
 	
-	# ANIMATION / AFFICHAGE
+	# ANIMATION
 	if not DebugManager.use_legacy_hud and screen_rect.has_area():
-		# CAS MODERNE : On anime le vol de la carte.
-		# Note : animate_card_arrival s'occupe d'afficher la texture finale dans le slot à la fin.
-		# On n'appelle PAS update_slot ici pour éviter le "double affichage".
 		hud_instance.animate_card_arrival(screen_rect, slot_index, crop)
 		
-		# On attend exactement la durée du tween définie dans le HUD (0.6s)
-		await get_tree().create_timer(0.6).timeout
+		# --- SYNCHRONISATION PARFAITE ---
+		# On attend le signal émis par le HUD à la fin exacte du Tween.
+		await hud_instance.card_arrival_finished
+		
 	else:
-		# CAS LEGACY ou Fallback : On affiche direct
 		hud_instance.update_slot(slot_index, crop)
 		await get_tree().create_timer(0.1).timeout
 
-	# VÉRIFICATION LOGIQUE (Une fois l'animation finie)
+	# VÉRIFICATION
+	# Ne se lance que quand la case est bien calée dans son slot.
 	check_deduction_chain()
 
 # --- GESTION DES ÉTATS ET VALIDATION ---
@@ -251,50 +248,37 @@ func check_deduction_chain():
 	var found_chain_index = -1
 	var is_subset_of_any_chain = false
 	
-	# Analyse des chaînes
 	for i in range(valid_chains.size()):
 		if found_chains.has(i): continue
 		var chain = valid_chains[i]
 		
-		# Correspondance EXACTE (Victoire)
 		if chain.size() == current_ids.size():
 			if _lists_contain_same_items(chain, current_ids):
 				found_chain_index = i
 				break
-		
-		# Sous-ensemble VALIDE (On continue)
 		elif chain.size() > current_ids.size():
 			if _is_list_subset(current_ids, chain):
 				is_subset_of_any_chain = true
 	
-	# --- PRISE DE DÉCISION ---
-	
+	# --- DÉCISION ---
 	if found_chain_index != -1:
-		# CAS 1 : C'est GAGNÉ
-		print("Chain Complete!")
-		validate_chain_multi(found_chain_index)
+		validate_chain_multi(found_chain_index) # Victoire
 	
 	elif is_subset_of_any_chain:
-		# CAS 2 : C'est un bon début ("Keep Going")
 		if selected_objects.size() >= MAX_SLOTS:
-			# Dommage, c'était bien parti mais plus de place
-			print("Slots pleins mais chaine incomplète.")
-			_trigger_failure()
+			_trigger_failure() # Plein mais incomplet
 		else:
-			# Tout va bien, on rend la main au joueur pour la suite
-			print("Valid subset, waiting for more...")
-			set_process_input(true)
+			set_process_input(true) # On continue (Keep Going)
 	
 	else:
-		# CAS 3 : Ce n'est pas bon
+		# Échec
 		if current_ids.size() >= 2:
-			# On a au moins 2 objets et ça ne matche rien -> ÉCHEC
-			print("Invalid combination.")
+			# Ceci appellera _trigger_failure qui secoue les cases.
+			# Comme cette fonction est appelée APRES le await de 0.65s,
+			# l'animation de déplacement sera forcément finie avant que ça tremble.
 			_trigger_failure()
 		else:
-			# On a 1 seul objet, il ne matche rien (bizarre mais possible) -> On laisse explorer
-			print("Single object selection.")
-			set_process_input(true)
+			set_process_input(true) # Exploration (1 seul objet)
 
 # --- FONCTIONS UTILITAIRES (À ajouter dans le script) ---
 
