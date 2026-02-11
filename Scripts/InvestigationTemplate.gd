@@ -19,7 +19,7 @@ var target_zoom: float = 1.0
 var zoom_tween: Tween # On garde une référence au Tween pour pouvoir l'annuler si on re-scrolle vite
 var valid_chains = [
 	["DefaultObjectA", "DefaultObjectC"], 
-	["objet_C", "objet_A"] # Note: objet_A fait partie de 2 chaînes
+	["DefaultObjectA", "DefaultObjectB"] # Note: objet_A fait partie de 2 chaînes
 ]
 # Liste des chaînes déjà trouvées par le joueur
 var found_chains = []
@@ -255,6 +255,10 @@ func check_deduction_chain():
 	
 	# 2. On analyse toutes les chaînes possibles
 	for i in range(valid_chains.size()):
+		# Optionnel : On peut ignorer les chaînes déjà trouvées pour éviter les doublons
+		if found_chains.has(i):
+			continue
+			
 		var chain = valid_chains[i]
 		
 		# --- TEST A : Correspondance Exacte (Victoire) ---
@@ -263,7 +267,7 @@ func check_deduction_chain():
 				found_chain_index = i
 				break # Victoire trouvée, on arrête de chercher
 		
-		# --- TEST B : Sous-ensemble Valide (En cours...) ---
+		# --- TEST B : Sous-ensemble Valide ---
 		# Si la chaîne est plus grande que notre sélection, est-ce que notre sélection "rentre" dedans ?
 		elif chain.size() > current_ids.size():
 			if _is_list_subset(current_ids, chain):
@@ -273,12 +277,12 @@ func check_deduction_chain():
 	# 3. Prise de décision
 	
 	if found_chain_index != -1:
-		# CAS 1 : C'est une chaîne complète (de 2 OU 3 objets) -> VICTOIRE
+		# CAS 1 : C'est une chaîne complète -> VICTOIRE
 		validate_chain_multi(found_chain_index)
 	
 	elif is_subset_of_any_chain:
 		# CAS 2 : C'est un début valide -> ON ATTEND
-		# Sauf si on est déjà plein (ce qui ne devrait pas arriver si la logique est bonne, mais sécurité)
+		# Sauf si on est déjà plein
 		if selected_objects.size() >= MAX_SLOTS:
 			print("Slots pleins mais chaîne incomplète -> Erreur")
 			_trigger_failure()
@@ -286,10 +290,17 @@ func check_deduction_chain():
 			print("Combinaison valide pour l'instant... en attente de la suite.")
 	
 	else:
-		# CAS 3 : Ce n'est ni complet, ni un début valide -> ECHEC IMMÉDIAT
-		# Exemple : J'ai mis 2 objets qui ne vont nulle part ensemble.
-		print("Cul-de-sac logique détecté -> Erreur immédiate")
-		_trigger_failure()
+		# CAS 3 : Ce n'est ni complet, ni un début valide
+		
+		# --- MODIFICATION ---
+		# On vérifie si le joueur a sélectionné au moins 2 objets avant de le punir.
+		if current_ids.size() >= 2:
+			print("Incohérence détectée entre plusieurs objets -> Erreur immédiate")
+			_trigger_failure()
+		else:
+			# Si on a 1 seul objet et qu'il n'est dans aucune chaîne (ou aucune chaîne restante),
+			# on ne fait rien. Le joueur peut le désélectionner ou tenter d'en ajouter un autre.
+			print("Objet seul hors chaîne (ou chaîne déjà finie) -> Pas d'erreur (exploration)")
 
 # --- FONCTIONS UTILITAIRES (À ajouter dans le script) ---
 
@@ -319,7 +330,8 @@ func _trigger_failure():
 		# Ici, on mettra plus tard votre nouvelle animation.
 		# En attendant, on met juste un petit délai technique pour simuler le temps de feedback
 		print("[NOUVEAU SYSTÈME] Feedback d'échec (Simulation)")
-		await get_tree().create_timer(0.5).timeout	
+		await hud_instance.trigger_failure_animation()
+		
 	set_process_input(true)
 	cancel_selection()
 
