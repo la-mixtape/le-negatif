@@ -354,14 +354,15 @@ func _trigger_failure():
 func validate_chain_multi(index_in_list: int):
 	print("SUCCÈS ! Déduction trouvée !")
 	found_chains.append(index_in_list)
-	
+	await get_tree().create_timer(2.0).timeout
 	for obj in selected_objects:
 		obj.set_state(InteractiveObject.State.IDLE)
 		check_object_completion(obj)
+		if obj.current_state != InteractiveObject.State.COMPLETED:
+			obj.set_state(InteractiveObject.State.IDLE)
 	
 	selected_objects.clear()
 	
-	await get_tree().create_timer(2.0).timeout
 	hud_instance.clear_slots()
 	
 	# --- IMPORTANT : On rend la main au joueur après la validation ---

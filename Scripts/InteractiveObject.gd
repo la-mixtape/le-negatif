@@ -14,6 +14,7 @@ signal object_clicked(obj_ref)
 
 var border_shader = preload("res://Resources/dashed_border.gdshader") 
 var highlight_rect: ColorRect = null
+var is_mouse_inside: bool = false
 
 # --- ÉTATS ---
 enum State { IDLE, HOVER, SELECTED, COMPLETED }
@@ -60,33 +61,26 @@ func set_state(new_state):
 	_update_visuals()
 
 func _update_visuals():
-	if visual_node == null: return
+	# Gestion de l'ancien visuel (si vous l'avez encore)
 	if visual_node:
-		match current_state:
-			State.IDLE:
-				visual_node.visible = false
-				visual_node.modulate = Color(1, 1, 1, 1)
-			State.HOVER:
-				visual_node.visible = true
-				visual_node.modulate = Color(1, 1, 1, 0.5) # Semi-transparent
-			State.SELECTED:
-				visual_node.visible = true
-				visual_node.modulate = Color(1, 0.8, 0.2, 0.8) # Orange
-			State.COMPLETED:
-				visual_node.visible = false # Ou une autre indication "Cold"
+		visual_node.visible = false 
+
+	# Gestion du cadre pointillé (HighlightBorder)
 	if highlight_rect:
 		match current_state:
-			State.HOVER, State.SELECTED:
+			State.HOVER:
+				# VISIBLE UNIQUEMENT AU SURVOL
 				highlight_rect.visible = true
-				_adjust_highlight_rect() # On s'assure qu'il est bien placé
+				_adjust_highlight_rect()
 				
-				# Optionnel : Changer la couleur ou vitesse selon l'état
-				if current_state == State.SELECTED:
-					(highlight_rect.material as ShaderMaterial).set_shader_parameter("color", Color(1.0, 1.0, 1.0, 1.0)) # Vert si sélectionné ?
-				else:
-					(highlight_rect.material as ShaderMaterial).set_shader_parameter("color", Color(1.0, 1.0, 1.0, 1.0)) # Orange au survol
-					
-			State.IDLE, State.COMPLETED:
+				# On s'assure que la couleur est bien celle du survol (ex: Orange)
+				var mat = highlight_rect.material as ShaderMaterial
+				if mat:
+					mat.set_shader_parameter("color", Color(1.0, 1.0, 1.0, 1.0))
+			
+			_:
+				# POUR TOUT LE RESTE (IDLE, SELECTED, COMPLETED) -> CACHÉ
+				# Dès qu'on clique, l'état passe à SELECTED et le cadre disparaît immédiatement.
 				highlight_rect.visible = false
 
 func _adjust_highlight_rect():
