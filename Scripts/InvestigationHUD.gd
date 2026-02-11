@@ -65,7 +65,6 @@ func _reset_slot(slot_control: Control):
 
 # --- ANIMATIONS ---
 
-# Dans InvestigationHUD.gd
 
 func animate_card_arrival(start_screen_rect: Rect2, slot_index: int, texture: Texture2D):
 	var slot_control = null
@@ -75,75 +74,71 @@ func animate_card_arrival(start_screen_rect: Rect2, slot_index: int, texture: Te
 	
 	if not slot_control: return
 
-	# --- 1. PRÉPARATION DE LA DESTINATION (La vraie carte) ---
+	# --- 1. PRÉPARATION DU SLOT ---
 	var real_card = slot_control.get_node_or_null("Card")
 	if real_card:
 		var visual = real_card.get_node_or_null("Visual")
 		if visual: visual.texture = texture
 	
-	# On rend le slot visible
+	# On rend le slot visible pour que le Layout (VBox) se mette à jour
 	slot_control.visible = true 
 	
-	# [CORRECTION IMPORTANTE] : On attend que Godot recalcule le layout (VBox)
-	# Cela garantit que le Slot 2 est bien SOUS le Slot 1 avant de viser.
-	await get_tree().process_frame
-	
-	# On cache visuellement la vraie carte (alpha 0) mais elle garde sa place physique
-	if real_card:
-		real_card.modulate.a = 0.0
+	# On cache la vraie carte pour l'instant
+	if real_card: real_card.modulate.a = 0.0
 	
 	# --- 2. CRÉATION DU FLYER (La carte volante) ---
-	# On instancie un clone temporaire pour le voyage
 	var flyer = real_card.duplicate()
 	add_child(flyer)
 	
-	# Configuration initiale du Flyer
 	flyer.visible = true
 	flyer.modulate.a = 1.0
 	flyer.rotation = 0
-	flyer.pivot_offset = Vector2.ZERO # Important pour que le scale se fasse depuis le coin haut-gauche
+	flyer.pivot_offset = Vector2.ZERO 
 	
-	# On s'assure que la texture est bien mise sur le flyer
 	var flyer_visual = flyer.get_node_or_null("Visual")
 	if flyer_visual: flyer_visual.texture = texture
 
-	# --- 3. CALCUL DES POSITIONS ET ÉCHELLES ---
-	
-	# A. Cible (La position finale exacte dans le HUD)
-	var target_pos = real_card.global_position
+	# --- 3. POSITIONNEMENT INITIAL (SUR L'OBJET CLIQUÉ) ---
+	# On récupère la taille cible théorique (celle de la carte dans l'UI)
 	var target_size = real_card.size
-	if target_size == Vector2.ZERO: target_size = Vector2(100, 140) # Fallback
+	if target_size == Vector2.ZERO: target_size = Vector2(100, 140)
 
-	# B. Départ (La zone cliquée sur la scène)
-	# On place le flyer exactement sur l'objet cliqué
+	# On place le flyer au départ
 	flyer.global_position = start_screen_rect.position
-	flyer.size = target_size # On lui donne sa taille finale "interne"
+	flyer.size = target_size 
 	
-	# On calcule le scale nécessaire pour qu'il ait la taille de la zone cliquée visuellement
+	# On calcule le scale pour matcher la zone cliquée
 	var start_scale_x = start_screen_rect.size.x / target_size.x
 	var start_scale_y = start_screen_rect.size.y / target_size.y
 	flyer.scale = Vector2(start_scale_x, start_scale_y)
 	
-	# --- 4. ANIMATION (Séquence) ---
+	# --- 4. PAUSE DRAMATIQUE (LA MÉTHODE FORTE) ---
+	# Le code s'arrête ici pendant 1.0 seconde. 
+	# L'image reste affichée immobile sur la scène.
+	await get_tree().create_timer(1.0).timeout
+	
+	# --- 5. CALCUL DE LA DESTINATION ---
+	# On le fait MAINTENANT, après la pause, pour avoir la position exacte 
+	# une fois que le VBoxContainer a fini de tout ranger.
+	var target_pos = real_card.global_position
+	
+	# --- 6. ANIMATION DE MOUVEMENT ---
 	var tween = create_tween()
-	# On garde le scale et la pos actuels un court instant
-	tween.tween_interval(1.0) 
+	tween.set_parallel(true) # Mouvement et Scale en même temps
 	
-	# ÉTAPE B : Voyage vers le slot
-	tween.set_parallel(true)
-	
-	# Mouvement : On utilise TRANS_EXPO ou TRANS_CUBIC pour un effet "rapide puis freinage précis"
+	# Glissement vers le slot
 	tween.tween_property(flyer, "global_position", target_pos, 0.6).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
 	
-	# Scale : On reprend la taille normale (1.0) pendant le voyage
+	# Retour à l'échelle normale
 	tween.tween_property(flyer, "scale", Vector2.ONE, 0.6).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 	
-	# --- 5. ARRIVÉE ---
+	# --- 7. ARRIVÉE ---
+	# Une fois les 0.6s passées
 	tween.chain().tween_callback(func():
-		flyer.queue_free()          # On détruit le flyer
+		flyer.queue_free()
 		if real_card:
-			real_card.modulate.a = 1.0  # On révèle la vraie carte
-			animate_floating(real_card) # On lance l'idle
+			real_card.modulate.a = 1.0
+			animate_floating(real_card)
 	)
 
 

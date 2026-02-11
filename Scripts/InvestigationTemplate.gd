@@ -337,10 +337,8 @@ func validate_chain_multi(index_in_list: int):
 	
 	# Délai avant de vider le HUD pour laisser le joueur voir le résultat
 	await get_tree().create_timer(2.0).timeout
-	if DebugManager.use_legacy_hud:
-		hud_instance.clear_slots()
-	else:
-		print ("Nouveau systeme tbd")
+	hud_instance.clear_slots()
+
 		
 
 func check_object_completion(obj: InteractiveObject):
