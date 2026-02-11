@@ -18,8 +18,8 @@ var hud_instance = null
 var target_zoom: float = 1.0
 var zoom_tween: Tween # On garde une référence au Tween pour pouvoir l'annuler si on re-scrolle vite
 var valid_chains = [
-	["DefaultObjectA", "DefaultObjectB", "DefaultObjectC"], 
-	["test", "test"] # Note: objet_A fait partie de 2 chaînes
+	["DefaultObjectA", "DefaultObjectB"], 
+	["DefaultObjectB", "DefaultObjectC"] # Note: objet_A fait partie de 2 chaînes
 ]
 # Liste des chaînes déjà trouvées par le joueur
 var found_chains = []
@@ -246,23 +246,36 @@ func check_deduction_chain():
 		current_ids.append(obj.object_id)
 	
 	var found_chain_index = -1
+	var already_found_index = -1 # Nouvelle variable pour stocker l'index si déjà trouvé
 	var is_subset_of_any_chain = false
 	
 	for i in range(valid_chains.size()):
-		if found_chains.has(i): continue
+		# On ne fait plus "continue" ici si c'est trouvé, on veut analyser la correspondance
 		var chain = valid_chains[i]
 		
+		# Cas 1 : La taille correspond parfaitement (Tentative de validation)
 		if chain.size() == current_ids.size():
 			if _lists_contain_same_items(chain, current_ids):
-				found_chain_index = i
-				break
+				if found_chains.has(i):
+					already_found_index = i # C'est la bonne chaîne, mais déjà connue
+				else:
+					found_chain_index = i # C'est une nouvelle découverte !
+				break # On a trouvé une correspondance exacte, on arrête la recherche
+		
+		# Cas 2 : La chaîne est plus grande (Potentiel subset)
+		# Ici, on garde la logique : on ne veut pas d'indice "Keep Going" pour une chaîne déjà finie.
 		elif chain.size() > current_ids.size():
-			if _is_list_subset(current_ids, chain):
-				is_subset_of_any_chain = true
+			# On ne vérifie le subset que si la chaîne N'EST PAS encore trouvée
+			if not found_chains.has(i): 
+				if _is_list_subset(current_ids, chain):
+					is_subset_of_any_chain = true
 	
 	# --- DÉCISION ---
 	if found_chain_index != -1:
-		validate_chain_multi(found_chain_index) # Victoire
+		validate_chain_multi(found_chain_index) # Victoire (Première fois)
+	
+	elif already_found_index != -1:
+		trigger_already_found_sequence(already_found_index) # NOUVEAU : État neutre "Déjà vu"
 	
 	elif is_subset_of_any_chain:
 		if selected_objects.size() >= MAX_SLOTS:
@@ -271,16 +284,34 @@ func check_deduction_chain():
 			set_process_input(true) # On continue (Keep Going)
 	
 	else:
-		# Échec
+		# Échec total (mauvaise combinaison)
 		if current_ids.size() >= 2:
-			# Ceci appellera _trigger_failure qui secoue les cases.
-			# Comme cette fonction est appelée APRES le await de 0.65s,
-			# l'animation de déplacement sera forcément finie avant que ça tremble.
 			_trigger_failure()
 		else:
-			set_process_input(true) # Exploration (1 seul objet)
+			set_process_input(true)
 
 # --- FONCTIONS UTILITAIRES (À ajouter dans le script) ---
+func trigger_already_found_sequence(index_in_list: int):
+	print("Info : Cette association a déjà été trouvée.")
+	
+	# 1. Feedback visuel (Optionnel)
+	# Vous pouvez ajouter ici un son spécifique "déjà fait" ou un petit flash
+	# Pour l'instant, on se contente de vider les slots proprement comme demandé.
+	
+	# 2. Reset des objets
+	for obj in selected_objects:
+		obj.set_state(InteractiveObject.State.IDLE)
+		# Pas besoin de rappeler check_object_completion car c'est déjà fait
+	
+	selected_objects.clear()
+	
+	# 3. Nettoyage HUD
+	# On peut mettre un timer plus court que pour une victoire majeure
+	await get_tree().create_timer(0.5).timeout 
+	hud_instance.clear_slots()
+	
+	# 4. On rend la main au joueur
+	set_process_input(true)
 
 # Vérifie si list_a contient les mêmes éléments que list_b (sans ordre)
 func _lists_contain_same_items(list_a: Array, list_b: Array) -> bool:
