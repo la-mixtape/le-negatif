@@ -3,6 +3,7 @@
 [ext_resource type="Script" uid="uid://dgrsi6eveveg2" path="res://Scripts/InvestigationTemplate.gd" id="1_8ubl4"]
 [ext_resource type="Texture2D" uid="uid://brhs8e6c1umrh" path="res://Assets/Images/960px-Bellows_CliffDwellers.jpg" id="2_v48yd"]
 [ext_resource type="Script" uid="uid://b7my5lpc5mlbj" path="res://Scripts/InteractiveObject.gd" id="3_v48yd"]
+[ext_resource type="Script" uid="uid://c46kmw0yymxwf" path="res://Scripts/TransitionArea.gd" id="4_svkkg"]
 
 [node name="InvestigationTemplate" type="Node2D" unique_id=1629418557]
 script = ExtResource("1_8ubl4")
@@ -86,3 +87,15 @@ polygon = PackedVector2Array(26.397827, -46.834717, 36.616272, -49.389343, 49.38
 [node name="Camera2D" type="Camera2D" parent="." unique_id=688279309]
 position = Vector2(961, 542)
 position_smoothing_enabled = true
+
+[node name="TransitionArea" type="Area2D" parent="." unique_id=1507315636]
+position = Vector2(968, 352)
+script = ExtResource("4_svkkg")
+target_scene_path = "uid://cgg0tg7skv78y"
+metadata/_custom_type_script = "uid://c46kmw0yymxwf"
+
+[node name="ReferenceRect" type="ReferenceRect" parent="TransitionArea" unique_id=2041409769]
+offset_left = 113.0
+offset_top = -15.0
+offset_right = 228.0
+offset_bottom = 140.0
