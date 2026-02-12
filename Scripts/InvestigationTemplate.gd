@@ -14,9 +14,16 @@ var hud_instance = null
 @export var max_zoom: float = 5
 @export var zoom_duration: float = 0.4 # Temps en secondes pour effectuer le zoom (plus c'est long, plus "l'atterrissage" est visible)
 
+@export_group("Trackpad Gestures")
+@export var pinch_sensitivity: float = 8.0
+@export var pan_gesture_sensitivity: float = 6.0
+
 # --- VARIABLES INTERNES ---
 var target_zoom: float = 1.0
 var zoom_tween: Tween # On garde une référence au Tween pour pouvoir l'annuler si on re-scrolle vite
+# Gesture state tracking
+var last_pinch_factor: float = 1.0
+var is_pinching: bool = false
 var valid_chains = [
 	["DefaultObjectA", "DefaultObjectB"], 
 	["DefaultObjectB", "DefaultObjectC"] # Note: objet_A fait partie de 2 chaînes
@@ -46,6 +53,7 @@ func _process(delta):
 func _unhandled_input(event):
 	handle_zoom_input(event)
 	handle_mouse_panning(event)
+	handle_gesture_input(event)
 
 func handle_zoom_input(event):
 	var changed = false
@@ -115,6 +123,45 @@ func handle_mouse_panning(event):
 	if event is InputEventMouseMotion:
 		if Input.is_mouse_button_pressed(MOUSE_BUTTON_RIGHT):
 			camera.position -= event.relative / camera.zoom
+
+func handle_gesture_input(event):
+	if event is InputEventMagnifyGesture:
+		handle_pinch_gesture(event)
+	elif event is InputEventPanGesture:
+		handle_pan_gesture(event)
+
+func handle_pinch_gesture(event: InputEventMagnifyGesture):
+	# Detect gesture start/reset
+	if not is_pinching or abs(event.factor - 1.0) < 0.01:
+		is_pinching = true
+		last_pinch_factor = event.factor
+		return
+
+	# Calculate zoom delta from gesture factor change
+	var zoom_delta = (event.factor - last_pinch_factor) * pinch_sensitivity
+	last_pinch_factor = event.factor
+
+	# Apply to target zoom (same as mouse wheel)
+	target_zoom += zoom_delta
+	target_zoom = clamp(target_zoom, min_zoom, max_zoom)
+
+	# Capture state and trigger zoom tween
+	var start_zoom = camera.zoom.x
+	var start_pos = camera.position
+	var mouse_world_anchor = get_global_mouse_position()
+	var start_offset = start_pos - mouse_world_anchor
+
+	start_zoom_tween(start_zoom, target_zoom, mouse_world_anchor, start_offset)
+
+	# Reset tracking when gesture ends
+	if abs(event.factor - 1.0) < 0.01:
+		is_pinching = false
+		last_pinch_factor = 1.0
+
+func handle_pan_gesture(event: InputEventPanGesture):
+	# Apply pan delta to camera position
+	# Inverted for natural drag feel, scaled by zoom for consistency
+	camera.position += event.delta / camera.zoom * pan_gesture_sensitivity
 
 func connect_all_objects():
 	# On cherche tous les noeuds enfants qui sont des InteractableObject
