@@ -1,0 +1,19 @@
+[gd_scene format=3 uid="uid://diyyqla7v1je2"]
+
+[ext_resource type="Script" uid="uid://dgrsi6eveveg2" path="res://Scripts/InvestigationTemplate.gd" id="1_wt00d"]
+[ext_resource type="Texture2D" uid="uid://jqqydc54i7gb" path="res://Assets/Images/tableau.jpg" id="2_wt00d"]
+
+[node name="InvestigationTemplate" type="Node2D" unique_id=1629418557]
+script = ExtResource("1_wt00d")
+zoom_step = 1.0
+max_zoom = 10.0
+zoom_duration = 1.0
+
+[node name="BackgroundTemplate" type="Sprite2D" parent="." unique_id=1762910297]
+position = Vector2(968, 536)
+scale = Vector2(1.174342, 1.1743422)
+texture = ExtResource("2_wt00d")
+
+[node name="Camera2D" type="Camera2D" parent="." unique_id=688279309]
+position = Vector2(961, 542)
+position_smoothing_enabled = true

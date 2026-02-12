@@ -4,6 +4,8 @@ extends Node2D
 @onready var background = $BackgroundTemplate
 var hud_scene = preload("res://Scenes/InvestigationHUD.tscn")
 var hud_instance = null
+var back_button_scene = preload("res://Scenes/BackButtonUI.tscn")
+var back_button_instance = null
 
 @export_group("Déplacement (Pan)")
 @export var pan_speed: float = 600.0
@@ -40,11 +42,15 @@ const MAX_SLOTS = 4
 
 func _ready():
 	target_zoom = camera.zoom.x
-	
+
 	hud_instance = hud_scene.instantiate()
 	add_child(hud_instance) # On l'ajoute à la scène
-	
+
+	back_button_instance = back_button_scene.instantiate()
+	add_child(back_button_instance)
+
 	connect_all_objects()
+	connect_transition_areas()
 
 func _process(delta):
 	# On garde le Pan dans le process car c'est un mouvement continu
@@ -167,10 +173,53 @@ func connect_all_objects():
 	# On cherche tous les noeuds enfants qui sont des InteractableObject
 	# (Assurez-vous que vos objets sont bien des enfants de la scène ou dans un dossier spécifique)
 	var interactables = find_children("*", "Area2D") # Ou un groupe spécifique
-	
+
 	for obj in interactables:
 		if obj is InteractiveObject:
 			obj.object_clicked.connect(_on_object_clicked)
+
+func connect_transition_areas():
+	"""Connects all TransitionArea signals for scene navigation."""
+	var transition_areas = get_tree().get_nodes_in_group("transition_areas")
+	print("[InvestigationTemplate] Found %d transition areas" % transition_areas.size())
+
+	for area in transition_areas:
+		if area.has_signal("transition_triggered"):
+			area.transition_triggered.connect(_on_transition_triggered)
+		if area.has_signal("back_transition_triggered"):
+			area.back_transition_triggered.connect(_on_back_transition_triggered)
+
+func _on_transition_triggered(target_scene_path: String):
+	"""Handles forward scene transition when a TransitionArea threshold is reached."""
+	if GameManager.is_transitioning:
+		return  # Ignore if transition already in progress
+
+	print("[InvestigationTemplate] Transition triggered to: %s" % target_scene_path)
+
+	# Cancel active zoom tween
+	cancel_zoom_tween()
+
+	# Trigger transition via GameManager
+	GameManager.transition_to_scene(target_scene_path, self)
+
+func _on_back_transition_triggered():
+	"""Handles backward scene transition when zooming out below threshold."""
+	if not GameManager.can_go_back():
+		return
+
+	print("[InvestigationTemplate] Back transition triggered")
+
+	# Cancel active zoom tween
+	cancel_zoom_tween()
+
+	# Return to previous scene
+	GameManager.return_to_previous_scene()
+
+func cancel_zoom_tween():
+	"""Cancels the active zoom tween if one is running."""
+	if zoom_tween and zoom_tween.is_running():
+		zoom_tween.kill()
+		print("[InvestigationTemplate] Zoom tween cancelled")
 
 # Fonction utilitaire pour créer la texture découpée
 func create_crop_texture(obj: InteractiveObject) -> AtlasTexture:

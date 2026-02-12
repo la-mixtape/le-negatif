@@ -1,0 +1,31 @@
+[gd_scene format=3 uid="uid://cgg0tg7skv78y"]
+
+[ext_resource type="Script" uid="uid://dgrsi6eveveg2" path="res://Scripts/InvestigationTemplate.gd" id="1_nt0wu"]
+[ext_resource type="Texture2D" uid="uid://cjefmx2sxfvpg" path="res://Assets/Images/apartment.jpg" id="2_im6la"]
+[ext_resource type="Script" uid="uid://c46kmw0yymxwf" path="res://Scripts/TransitionArea.gd" id="3_nt0wu"]
+
+[node name="InvestigationTemplate" type="Node2D" unique_id=1629418557]
+script = ExtResource("1_nt0wu")
+zoom_step = 1.0
+max_zoom = 10.0
+zoom_duration = 1.0
+
+[node name="BackgroundTemplate" type="Sprite2D" parent="." unique_id=1762910297]
+position = Vector2(968, 536)
+scale = Vector2(1.174342, 1.1743422)
+texture = ExtResource("2_im6la")
+
+[node name="Camera2D" type="Camera2D" parent="." unique_id=688279309]
+position = Vector2(961, 542)
+position_smoothing_enabled = true
+
+[node name="TransitionArea" type="Area2D" parent="." unique_id=480921612]
+script = ExtResource("3_nt0wu")
+target_scene_path = "uid://diyyqla7v1je2"
+metadata/_custom_type_script = "uid://c46kmw0yymxwf"
+
+[node name="ReferenceRect" type="ReferenceRect" parent="TransitionArea" unique_id=1060870587]
+offset_left = 764.0
+offset_top = 201.0
+offset_right = 1010.0
+offset_bottom = 369.0
