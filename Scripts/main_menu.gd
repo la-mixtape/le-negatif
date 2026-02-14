@@ -20,8 +20,9 @@ func _ready():
 
 func _on_new_game_pressed():
 	print("Lancement d'une nouvelle partie...")
-	# On change la scène vers la scène de jeu
-	#get_tree().change_scene_to_file("res://Scenes/InvestigationTemplate.tscn")
+	# Start test investigation for debugging
+	print("Loading test investigation scene...")
+	get_tree().change_scene_to_file("res://scenes/investigations/test_investigation.tscn")
 
 func _on_continue_pressed():
 	print("Chargement de la partie...")

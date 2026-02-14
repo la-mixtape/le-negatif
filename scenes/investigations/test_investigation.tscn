@@ -1,0 +1,7 @@
+[gd_scene format=3 uid="uid://dbkiljjmk4n2p"]
+
+[ext_resource type="PackedScene" path="res://scenes/templates/investigation.tscn" id="1_template"]
+[ext_resource type="Texture2D" uid="uid://dq15fqs3jaivj" path="res://assets/images/scene7kv3.png" id="3_e5kj1"]
+
+[node name="TestInvestigation" unique_id=1449972227 instance=ExtResource("1_template")]
+image_texture = ExtResource("3_e5kj1")
