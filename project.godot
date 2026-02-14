@@ -11,14 +11,13 @@ config_version=5
 [application]
 
 config/name="LeNegatif"
-run/main_scene="uid://cvrhq0qwcwo22"
+run/main_scene="uid://ctf281dk5ogpq"
 config/features=PackedStringArray("4.6", "Mobile")
 config/icon="res://icon.svg"
 
 [autoload]
 
-GameManager="*uid://dji0iqbpw3320"
-DebugManager="*uid://cblle20xws8m0"
+GameManager="*uid://co4phc0x0l4p2"
 
 [display]
 

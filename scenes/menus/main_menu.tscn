@@ -1,6 +1,6 @@
 [gd_scene format=3 uid="uid://cvrhq0qwcwo22"]
 
-[ext_resource type="Script" uid="uid://d18p2xas5gl4w" path="res://Scripts/MainMenu.gd" id="1_rrxvj"]
+[ext_resource type="Script" uid="uid://d18p2xas5gl4w" path="res://scripts/main_menu.gd" id="1_xqga4"]
 
 [node name="MainMenu" type="Control" unique_id=1857774400]
 layout_mode = 3
@@ -9,7 +9,7 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-script = ExtResource("1_rrxvj")
+script = ExtResource("1_xqga4")
 
 [node name="ColorRect" type="ColorRect" parent="." unique_id=1731701516]
 layout_mode = 1
@@ -18,7 +18,7 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-color = Color(0.24115604, 0.24115604, 0.24115604, 1)
+color = Color(0, 0, 0, 1)
 
 [node name="VBoxContainer" type="VBoxContainer" parent="." unique_id=1023189104]
 layout_mode = 1

@@ -3,15 +3,15 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://brhs8e6c1umrh"
-path="res://.godot/imported/960px-Bellows_CliffDwellers.jpg-01140fe52a065c25611c91aa4822f036.ctex"
+path="res://.godot/imported/960px-Bellows_CliffDwellers.jpg-2f868d942651ec3795ce4fa01f956903.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://Assets/Images/960px-Bellows_CliffDwellers.jpg"
-dest_files=["res://.godot/imported/960px-Bellows_CliffDwellers.jpg-01140fe52a065c25611c91aa4822f036.ctex"]
+source_file="res://assets/images/960px-Bellows_CliffDwellers.jpg"
+dest_files=["res://.godot/imported/960px-Bellows_CliffDwellers.jpg-2f868d942651ec3795ce4fa01f956903.ctex"]
 
 [params]
 
