@@ -17,3 +17,8 @@ Le Negatif is an investigation game where players:
 - **Shaders:** GLSL
 - **Resolution:** 1920x1080
 - **Rendering:** DirectX 12 (Windows), 2x MSAA
+
+## Global structure
+
+* GameManager handles progression and global state
+*
