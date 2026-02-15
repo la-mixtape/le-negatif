@@ -9,13 +9,22 @@ uniform vec2 magnifier_uv_size = vec2(0.1, 0.2); // UV window the magnifier span
 uniform float zoom = 1.5;
 uniform float border_width : hint_range(0.0, 0.1) = 0.02;
 uniform vec4 border_color : source_color = vec4(1.0, 1.0, 1.0, 1.0);
+uniform float lens_inner_radius : hint_range(0.0, 1.0) = 0.75;
+uniform float lens_distortion : hint_range(0.0, 3.0) = 1.0;
 
 void fragment() {
 	vec2 centered = UV * 2.0 - 1.0;
 	float dist = length(centered);
 
-	// 1. Translate: offset from magnifier center (centered goes -1..1, so *0.5 → -0.5..0.5)
-	vec2 offset = centered * 0.5;
+	// Lens distortion: uniform zoom in center, quadratic falloff at edges
+	float distort = 1.0;
+	if (dist > lens_inner_radius && lens_inner_radius < 1.0) {
+		float t = (dist - lens_inner_radius) / (1.0 - lens_inner_radius);
+		distort = 1.0 + lens_distortion * t * t;
+	}
+
+	// 1. Offset from magnifier center with lens distortion applied
+	vec2 offset = centered * 0.5 * distort;
 
 	// 2. Scale: convert magnifier-space offset to texture UV offset, divided by zoom
 	vec2 tex_offset = offset * magnifier_uv_size / zoom;

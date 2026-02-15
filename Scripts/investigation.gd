@@ -14,10 +14,16 @@ class_name Investigation
 @export var min_zoom: float = 1.0
 
 ## Size of the magnifier as a percentage of screen height
-@export_range(0.05, 0.5) var magnifier_size_percent: float = 0.1
+@export_range(0.05, 0.5) var magnifier_size_percent: float = 0.125
 
 ## Fade duration for magnifier show/hide
 @export var fade_duration: float = 0.2
+
+## Fraction of magnifier radius with uniform zoom (rest has quadratic falloff)
+@export_range(0.0, 1.0) var lens_inner_radius: float = 0.80
+
+## Strength of lens distortion at edges
+@export_range(0.0, 3.0) var lens_distortion: float = 0.75
 
 ## Current zoom level
 var current_zoom: float = 2.0
@@ -68,6 +74,8 @@ func _ready() -> void:
 	if _active_texture:
 		var mat := magnifier_circle.material as ShaderMaterial
 		mat.set_shader_parameter("magnified_texture", _active_texture)
+		mat.set_shader_parameter("lens_inner_radius", lens_inner_radius)
+		mat.set_shader_parameter("lens_distortion", lens_distortion)
 
 	# Initialize magnifier as hidden
 	magnifier_container.modulate.a = 0.0
