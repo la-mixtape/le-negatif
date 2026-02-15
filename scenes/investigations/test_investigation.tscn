@@ -2,8 +2,24 @@
 
 [ext_resource type="PackedScene" uid="uid://b7k3n8v2qxp1m" path="res://scenes/templates/investigation.tscn" id="1_template"]
 [ext_resource type="Texture2D" uid="uid://dq15fqs3jaivj" path="res://assets/images/scene7kv3.png" id="3_e5kj1"]
+[ext_resource type="PackedScene" uid="uid://xgx3rdksgdgx" path="res://scenes/templates/clue.tscn" id="3_l4ftp"]
+[ext_resource type="PackedScene" path="res://scenes/templates/transition_area.tscn" id="4_l4ftp"]
 
 [node name="TestInvestigation" unique_id=1449972227 instance=ExtResource("1_template")]
 
 [node name="BaseImage" parent="AspectContainer" index="0"]
 texture = ExtResource("3_e5kj1")
+
+[node name="Clue" parent="." index="3" unique_id=175460932 instance=ExtResource("3_l4ftp")]
+position = Vector2(461, 747.5)
+polygon = PackedVector2Array(-4, -9.5, -6, 7.5, 6, 9.5, 4, -7.5)
+vignette_padding = Vector2(7.18, 4.45)
+
+[node name="Clue2" parent="." index="4" unique_id=1806672424 instance=ExtResource("3_l4ftp")]
+polygon = PackedVector2Array(705, 748, 751, 750, 753, 767, 707, 768)
+vignette_padding = Vector2(0.84, 3.16)
+
+[node name="TransitionArea" parent="." index="5" unique_id=743253004 instance=ExtResource("4_l4ftp")]
+position = Vector2(972, 244)
+size = Vector2(35.546356, 56.256958)
+target_scene = "uid://cbqy12lllesf"

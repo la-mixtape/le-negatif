@@ -25,10 +25,17 @@ class_name Investigation
 ## Strength of lens distortion at edges
 @export_range(0.0, 3.0) var lens_distortion: float = 0.75
 
+# ─── Vignette exports ────────────────────────────────────────────
+
+## Width of the white frame around each vignette (pixels)
+@export var vignette_frame_width: float = 4.0
+
 # ─── Constants ──────────────────────────────────────────────────
 
 const MAX_SELECTED_CLUES := 3
-const VIGNETTE_SLOT_WIDTH := 250.0
+const VIGNETTE_IMAGE_SIZE := 200.0
+const VIGNETTE_MARGIN := 0.05
+const VIGNETTE_GAP := 12.0
 const VIGNETTE_SLIDE_DURATION := 0.3
 
 # Script references for type-safe child discovery
@@ -64,7 +71,9 @@ var _selected_clues: Array = []
 # ─── Vignette HUD ──────────────────────────────────────────────
 
 var _vignette_hud: Control
-var _vignette_slots: Array[Control] = []
+var _vignette_slots: Array[Control] = []   # clip containers (fixed position)
+var _vignette_panels: Array[Control] = []  # animated container (frame + image)
+var _vignette_frames: Array[ColorRect] = [] # white frame background
 var _vignette_images: Array[TextureRect] = []
 var _vignette_tweens: Array = []
 
@@ -133,14 +142,16 @@ func _input(event: InputEvent) -> void:
 	# Click for clue/transition interaction
 	if event.is_action_pressed("click"):
 		if _handle_click():
-			get_viewport().set_input_as_handled()
+			if is_inside_tree():
+				get_viewport().set_input_as_handled()
 			return
 
 	# Backspace to go back to previous investigation
 	if event is InputEventKey and event.pressed and not event.echo:
 		if event.keycode == KEY_BACKSPACE:
 			if GameManager.go_back():
-				get_viewport().set_input_as_handled()
+				if is_inside_tree():
+					get_viewport().set_input_as_handled()
 
 
 func _process(delta: float) -> void:
@@ -303,16 +314,13 @@ func _handle_click() -> bool:
 	if _try_transition():
 		return true
 
-	# Check clue polygons (in Investigation local space, like transition areas)
-	var local_pos := get_local_mouse_position()
+	# Check clue polygons (transform-agnostic via to_local)
+	var global_mouse := get_global_mouse_position()
 	for clue in _clues:
 		if GameManager.is_clue_discovered(clue.clue_id):
 			continue
-		# Polygon2D polygon points are offsets from clue.position — translate to Investigation space
-		var world_poly := PackedVector2Array()
-		for point in clue.polygon:
-			world_poly.append(point + clue.position)
-		if Geometry2D.is_point_in_polygon(local_pos, world_poly):
+		var clue_local: Vector2 = clue.to_local(global_mouse)
+		if Geometry2D.is_point_in_polygon(clue_local, clue.polygon):
 			_toggle_clue(clue)
 			return true
 
@@ -322,9 +330,7 @@ func _handle_click() -> bool:
 # ─── Clue management ────────────────────────────────────────────
 
 func _setup_clues() -> void:
-	for child in get_children():
-		if child is _ClueScript:
-			_clues.append(child)
+	_find_nodes_recursive(self, _ClueScript, _clues)
 
 
 func _toggle_clue(clue: Node) -> void:
@@ -406,9 +412,15 @@ func _check_investigation_complete() -> void:
 # ─── Transition areas ───────────────────────────────────────────
 
 func _setup_transition_areas() -> void:
-	for child in get_children():
-		if child is _TAScript:
-			_transition_areas.append(child)
+	_find_nodes_recursive(self, _TAScript, _transition_areas)
+
+
+func _find_nodes_recursive(node: Node, script: GDScript, results: Array) -> void:
+	for child in node.get_children():
+		if is_instance_of(child, script):
+			results.append(child)
+		else:
+			_find_nodes_recursive(child, script, results)
 
 
 func _try_transition() -> bool:
@@ -437,41 +449,69 @@ func _setup_vignette_hud() -> void:
 	_vignette_hud.set_anchors_preset(Control.PRESET_FULL_RECT)
 	add_child(_vignette_hud)
 
-	var slot_height := size.y / float(MAX_SELECTED_CLUES)
+	var fw := vignette_frame_width
+	var slot_size := VIGNETTE_IMAGE_SIZE + fw * 2.0
+
 	for i in MAX_SELECTED_CLUES:
+		# Clip container (fixed position, hides content when slid out)
 		var slot := Control.new()
 		slot.name = "VignetteSlot%d" % i
 		slot.clip_contents = true
 		slot.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		slot.position = Vector2(size.x - VIGNETTE_SLOT_WIDTH, i * slot_height)
-		slot.size = Vector2(VIGNETTE_SLOT_WIDTH, slot_height)
+		slot.size = Vector2(slot_size, slot_size)
 		_vignette_hud.add_child(slot)
 		_vignette_slots.append(slot)
 
+		# Panel that slides in/out (carries frame + image together)
+		var panel := Control.new()
+		panel.name = "Panel"
+		panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		panel.size = Vector2(slot_size, slot_size)
+		panel.position = Vector2(slot_size, 0)  # start hidden to the right
+		slot.add_child(panel)
+		_vignette_panels.append(panel)
+
+		# White frame background
+		var frame := ColorRect.new()
+		frame.name = "Frame"
+		frame.color = Color.WHITE
+		frame.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		frame.size = Vector2(slot_size, slot_size)
+		panel.add_child(frame)
+		_vignette_frames.append(frame)
+
+		# Image inset by frame width
 		var img := TextureRect.new()
 		img.name = "VignetteImage"
 		img.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 		img.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
-		img.size = Vector2(VIGNETTE_SLOT_WIDTH, slot_height)
-		img.position = Vector2(VIGNETTE_SLOT_WIDTH, 0)
+		img.position = Vector2(fw, fw)
+		img.size = Vector2(VIGNETTE_IMAGE_SIZE, VIGNETTE_IMAGE_SIZE)
 		img.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		slot.add_child(img)
+		panel.add_child(img)
 		_vignette_images.append(img)
 		_vignette_tweens.append(null)
+
+	_update_vignette_layout()
 
 
 func _update_vignette_layout() -> void:
 	if not _vignette_hud:
 		return
-	var slot_height := size.y / float(MAX_SELECTED_CLUES)
+	var slot_size := VIGNETTE_IMAGE_SIZE + vignette_frame_width * 2.0
+	var margin_x := size.x * VIGNETTE_MARGIN
+	var margin_y := size.y * VIGNETTE_MARGIN
+	var slot_x := size.x - margin_x - slot_size
 	for i in MAX_SELECTED_CLUES:
-		_vignette_slots[i].position = Vector2(size.x - VIGNETTE_SLOT_WIDTH, i * slot_height)
-		_vignette_slots[i].size = Vector2(VIGNETTE_SLOT_WIDTH, slot_height)
-		_vignette_images[i].size = Vector2(VIGNETTE_SLOT_WIDTH, slot_height)
+		var slot_y := margin_y + i * (slot_size + VIGNETTE_GAP)
+		_vignette_slots[i].position = Vector2(slot_x, slot_y)
+		_vignette_slots[i].size = Vector2(slot_size, slot_size)
 
 
 func _rebuild_vignette_display() -> void:
+	var slot_size := VIGNETTE_IMAGE_SIZE + vignette_frame_width * 2.0
 	for i in MAX_SELECTED_CLUES:
+		var panel := _vignette_panels[i]
 		var img := _vignette_images[i]
 
 		# Kill any running tween for this slot
@@ -485,19 +525,22 @@ func _rebuild_vignette_display() -> void:
 			if _active_texture and vignette.size != Vector2.ZERO:
 				var atlas := AtlasTexture.new()
 				atlas.atlas = _active_texture
-				var inv_rect := Rect2(clue.position + vignette.position, vignette.size)
-				atlas.region = _local_rect_to_image_rect(inv_rect)
+				# Map vignette rect from clue local → global → Investigation local
+				var inv_xform := get_global_transform().affine_inverse()
+				var inv_origin: Vector2 = inv_xform * clue.to_global(vignette.position)
+				var inv_end: Vector2 = inv_xform * clue.to_global(vignette.position + vignette.size)
+				atlas.region = _local_rect_to_image_rect(Rect2(inv_origin, inv_end - inv_origin))
 				img.texture = atlas
-			# Slide in from right
+			# Slide panel in from right
 			var tween := create_tween().set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
-			tween.tween_property(img, "position", Vector2.ZERO, VIGNETTE_SLIDE_DURATION)
+			tween.tween_property(panel, "position", Vector2.ZERO, VIGNETTE_SLIDE_DURATION)
 			_vignette_tweens[i] = tween
 		else:
 			if img.texture:
-				# Slide out to the right
+				# Slide panel out to the right
 				var tween := create_tween().set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_IN)
-				tween.tween_property(img, "position", Vector2(VIGNETTE_SLOT_WIDTH, 0), VIGNETTE_SLIDE_DURATION)
+				tween.tween_property(panel, "position", Vector2(slot_size, 0), VIGNETTE_SLIDE_DURATION)
 				tween.tween_callback(func(): img.texture = null)
 				_vignette_tweens[i] = tween
 			else:
-				img.position = Vector2(VIGNETTE_SLOT_WIDTH, 0)
+				panel.position = Vector2(slot_size, 0)
