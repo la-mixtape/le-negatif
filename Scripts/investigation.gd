@@ -30,6 +30,12 @@ class_name Investigation
 ## Width of the white frame around each vignette (pixels)
 @export var vignette_frame_width: float = 4.0
 
+## Opacity vignettes fade to on hover (0 = fully transparent, 1 = opaque)
+@export_range(0.0, 1.0) var vignette_hover_opacity: float = 0.2
+
+## Duration of the vignette hover fade (seconds)
+@export var vignette_hover_duration: float = 0.5
+
 # ─── Constants ──────────────────────────────────────────────────
 
 const MAX_SELECTED_CLUES := 3
@@ -76,6 +82,7 @@ var _vignette_panels: Array[Control] = []  # animated container (frame + image)
 var _vignette_frames: Array[ColorRect] = [] # white frame background
 var _vignette_images: Array[TextureRect] = []
 var _vignette_tweens: Array = []
+var _vignette_hover_tweens: Array = []
 
 # ─── Nodes ──────────────────────────────────────────────────────
 
@@ -118,6 +125,9 @@ func _ready() -> void:
 
 	# Build vignette HUD for clue display
 	_setup_vignette_hud()
+
+	# Ensure magnifier draws on top of vignettes
+	# move_child(magnifier_container, -1)
 
 
 func _input(event: InputEvent) -> void:
@@ -465,11 +475,15 @@ func _setup_vignette_hud() -> void:
 		# Panel that slides in/out (carries frame + image together)
 		var panel := Control.new()
 		panel.name = "Panel"
-		panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		panel.mouse_filter = Control.MOUSE_FILTER_PASS
 		panel.size = Vector2(slot_size, slot_size)
 		panel.position = Vector2(slot_size, 0)  # start hidden to the right
 		slot.add_child(panel)
 		_vignette_panels.append(panel)
+
+		# Hover fade
+		panel.mouse_entered.connect(_on_vignette_hover.bind(i, true))
+		panel.mouse_exited.connect(_on_vignette_hover.bind(i, false))
 
 		# White frame background
 		var frame := ColorRect.new()
@@ -491,6 +505,7 @@ func _setup_vignette_hud() -> void:
 		panel.add_child(img)
 		_vignette_images.append(img)
 		_vignette_tweens.append(null)
+		_vignette_hover_tweens.append(null)
 
 	_update_vignette_layout()
 
@@ -544,3 +559,13 @@ func _rebuild_vignette_display() -> void:
 				_vignette_tweens[i] = tween
 			else:
 				panel.position = Vector2(slot_size, 0)
+
+
+func _on_vignette_hover(index: int, hovered: bool) -> void:
+	if _vignette_hover_tweens[index]:
+		_vignette_hover_tweens[index].kill()
+	var panel := _vignette_panels[index]
+	var target := vignette_hover_opacity if hovered else 1.0
+	var tween := create_tween().set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+	tween.tween_property(panel, "modulate:a", target, vignette_hover_duration)
+	_vignette_hover_tweens[index] = tween
