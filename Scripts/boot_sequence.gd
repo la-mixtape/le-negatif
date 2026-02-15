@@ -5,8 +5,8 @@ extends Control
 
 ## Array of text placeholders (replace with actual image paths later)
 @export var splash_screens: Array[String] = [
-	"Studio Logo",
-	"Le Negatif",
+	"Le Mouvement Présente",
+	"Le Négatif",
 	"Powered by Godot"
 ]
 

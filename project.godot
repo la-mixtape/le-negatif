@@ -26,6 +26,10 @@ window/size/viewport_height=1080
 window/size/mode=3
 window/stretch/mode="canvas_items"
 
+[editor_plugins]
+
+enabled=PackedStringArray("res://addons/transition_area_gizmo/plugin.cfg")
+
 [input]
 
 click={
