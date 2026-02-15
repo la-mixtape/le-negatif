@@ -4,4 +4,6 @@
 [ext_resource type="Texture2D" uid="uid://jqqydc54i7gb" path="res://assets/images/tableau.jpg" id="2_2r5uo"]
 
 [node name="Investigation" unique_id=1754918853 instance=ExtResource("1_araji")]
-image_texture = ExtResource("2_2r5uo")
+
+[node name="BaseImage" parent="AspectContainer" index="0"]
+texture = ExtResource("2_2r5uo")

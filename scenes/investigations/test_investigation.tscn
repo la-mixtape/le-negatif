@@ -4,4 +4,6 @@
 [ext_resource type="Texture2D" uid="uid://dq15fqs3jaivj" path="res://assets/images/scene7kv3.png" id="3_e5kj1"]
 
 [node name="TestInvestigation" unique_id=1449972227 instance=ExtResource("1_template")]
-image_texture = ExtResource("3_e5kj1")
+
+[node name="BaseImage" parent="AspectContainer" index="0"]
+texture = ExtResource("3_e5kj1")

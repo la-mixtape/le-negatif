@@ -5,10 +5,7 @@ class_name Investigation
 ## Supports clue discovery (click polygons, vignette HUD) and
 ## scene transitions via TransitionArea children.
 
-# ─── Image & magnifier exports ──────────────────────────────────
-
-## The image texture to investigate
-@export var image_texture: Texture2D
+# ─── Magnifier exports ───────────────────────────────────────────
 
 ## Maximum zoom level for the magnifier
 @export var max_zoom: float = 8.0
@@ -83,12 +80,8 @@ var _vignette_tweens: Array = []
 # ─── Lifecycle ──────────────────────────────────────────────────
 
 func _ready() -> void:
-	# Determine the active texture (BaseImage override takes precedence)
-	if base_image.texture:
-		_active_texture = base_image.texture
-	elif image_texture:
-		_active_texture = image_texture
-		base_image.texture = _active_texture
+	# Read texture directly from BaseImage (set it in the scene editor)
+	_active_texture = base_image.texture
 
 	# Pass texture and lens parameters to the magnifier shader
 	if _active_texture:
