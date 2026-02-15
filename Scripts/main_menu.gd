@@ -22,7 +22,7 @@ func _on_new_game_pressed():
 	print("Lancement d'une nouvelle partie...")
 	# Start test investigation for debugging
 	print("Loading test investigation scene...")
-	get_tree().change_scene_to_file("res://scenes/investigations/test_investigation.tscn")
+	get_tree().change_scene_to_file("res://scenes/investigations/cliff_dwellers/investigation_cliff.tscn")
 
 func _on_continue_pressed():
 	print("Chargement de la partie...")

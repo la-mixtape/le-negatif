@@ -2,8 +2,14 @@
 
 [ext_resource type="PackedScene" uid="uid://b7k3n8v2qxp1m" path="res://scenes/templates/investigation.tscn" id="1_araji"]
 [ext_resource type="Texture2D" uid="uid://jqqydc54i7gb" path="res://assets/images/tableau.jpg" id="2_2r5uo"]
+[ext_resource type="PackedScene" uid="uid://xgx3rdksgdgx" path="res://scenes/templates/clue.tscn" id="3_33al0"]
 
 [node name="Investigation" unique_id=1754918853 instance=ExtResource("1_araji")]
 
 [node name="BaseImage" parent="AspectContainer" index="0"]
 texture = ExtResource("2_2r5uo")
+
+[node name="Clue" parent="AspectContainer" index="1" unique_id=175460932 instance=ExtResource("3_33al0")]
+position = Vector2(820, 597)
+polygon = PackedVector2Array(-19, 19, -31, -5, -30, -30, -15, -34, 13, -34, 16, -11, 16, 15)
+vignette_padding = Vector2(1.25, 0.84)

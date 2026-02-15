@@ -1,0 +1,26 @@
+[gd_scene format=3 uid="uid://cdcbhma2ibufo"]
+
+[ext_resource type="PackedScene" uid="uid://b7k3n8v2qxp1m" path="res://scenes/templates/investigation.tscn" id="1_k17w2"]
+[ext_resource type="Texture2D" uid="uid://djfgw1cfc0utw" path="res://assets/images/CliffDwellers.png" id="2_3xnvt"]
+[ext_resource type="PackedScene" uid="uid://xgx3rdksgdgx" path="res://scenes/templates/clue.tscn" id="3_8c6o4"]
+[ext_resource type="PackedScene" path="res://scenes/templates/transition_area.tscn" id="3_45inw"]
+
+[node name="Investigation" unique_id=1371006165 instance=ExtResource("1_k17w2")]
+
+[node name="BaseImage" parent="AspectContainer" index="0"]
+texture = ExtResource("2_3xnvt")
+
+[node name="TransitionArea" parent="AspectContainer" index="1" unique_id=748292610 instance=ExtResource("3_45inw")]
+position = Vector2(1200.96, 256.63)
+size = Vector2(61.53, 84.926)
+required_zoom = 3.0
+target_scene = "uid://c2lb37l5a6i2y"
+
+[node name="Clue" parent="AspectContainer" index="2" unique_id=175460932 instance=ExtResource("3_8c6o4")]
+position = Vector2(378.5, 425.77777)
+polygon = PackedVector2Array(-32.5, -22.777779, -26.5, -34.77778, -21.5, -43.77778, -8.5, -52.77778, 6.5, -51.77778, 21.5, -55.77778, 27.5, -37.77778, 32.5, -29.777779, 32.5, -21.777779, 25.5, -21.777779, 9.5, -7.7777786, 3.5, 47.22222, 6.5, 60.22222, 20.5, 70.22222, -7.5, 70.22222, -31.5, 73.22222, -21.5, 63.22222, -36.5, -3.7777786)
+
+[node name="Clue" parent="." index="3" unique_id=67168844 instance=ExtResource("3_8c6o4")]
+position = Vector2(1866, 183.25)
+polygon = PackedVector2Array(-37, -32.25, -31, 53.75, 36, 37.75, 32, -59.25)
+vignette_padding = Vector2(0.56, 0.26)

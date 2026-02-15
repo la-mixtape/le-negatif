@@ -7,10 +7,10 @@ class_name Investigation
 
 # ─── Magnifier exports ───────────────────────────────────────────
 
-## Maximum zoom level for the magnifier
-@export var max_zoom: float = 8.0
+## Maximum zoom level for the magnifier (e.g. 4 = 4x)
+@export var max_zoom: float = 4.0
 
-## Minimum zoom level for the magnifier
+## Minimum zoom level for the magnifier (1 = no zoom)
 @export var min_zoom: float = 1.0
 
 ## Size of the magnifier as a percentage of screen height
@@ -35,6 +35,14 @@ class_name Investigation
 
 ## Duration of the vignette hover fade (seconds)
 @export var vignette_hover_duration: float = 0.5
+
+# ─── Transition exports ─────────────────────────────────────────
+
+## Magnifier pulsation rate when a transition is available (pulses per second)
+@export var transition_pulse_rate: float = 1.0
+
+## Magnifier pulsation scale amplitude (fraction above 1.0)
+@export var transition_pulse_amplitude: float = 0.05
 
 # ─── Constants ──────────────────────────────────────────────────
 
@@ -67,6 +75,10 @@ var _active_texture: Texture2D
 
 ## Tween for max-zoom pulsate feedback
 var _pulsate_tween: Tween
+
+## Transition-ready pulse state
+var _transition_pulse_tween: Tween
+var _is_transition_ready: bool = false
 
 # ─── Clue & interaction state ───────────────────────────────────
 
@@ -175,6 +187,9 @@ func _process(delta: float) -> void:
 	if magnifier_active and magnifier_alpha > 0:
 		update_magnifier()
 
+	# Pulse feedback when a transition is available
+	_update_transition_pulse()
+
 
 # ─── Magnifier ──────────────────────────────────────────────────
 
@@ -187,13 +202,13 @@ func zoom_in() -> void:
 	if current_zoom >= max_zoom:
 		_pulsate_max_reached()
 		return
-	current_zoom = minf(current_zoom * 2.0, max_zoom)
+	current_zoom = minf(current_zoom + 1.0, max_zoom)
 	if current_zoom >= max_zoom:
 		_pulsate_max_reached()
 
 
 func zoom_out() -> void:
-	current_zoom = maxf(current_zoom / 2.0, min_zoom)
+	current_zoom = maxf(current_zoom - 1.0, min_zoom)
 	if current_zoom <= min_zoom:
 		magnifier_active = false
 		target_alpha = 0.0
@@ -469,15 +484,60 @@ func _try_transition() -> bool:
 	for ta in _transition_areas:
 		if effective_zoom < ta.required_zoom:
 			continue
-		# Active zone: central 50% of the transition rect (centered on node position)
-		var ta_rect := Rect2(ta.position - ta.size / 2.0, ta.size)
-		var center: Vector2 = ta_rect.get_center()
-		var inner_size: Vector2 = ta_rect.size * 0.5
-		var inner_rect := Rect2(center - inner_size / 2.0, inner_size)
-		if inner_rect.has_point(local_pos):
+		if _is_in_transition_zone(ta, local_pos, effective_zoom):
 			GameManager.navigate_to(ta.target_scene)
 			return true
 	return false
+
+
+func _is_in_transition_zone(ta: Node, local_pos: Vector2, effective_zoom: float) -> bool:
+	if effective_zoom < ta.required_zoom:
+		return false
+	var ta_rect := Rect2(ta.position - ta.size / 2.0, ta.size)
+	var center: Vector2 = ta_rect.get_center()
+	var inner_size: Vector2 = ta_rect.size * 0.5
+	var inner_rect := Rect2(center - inner_size / 2.0, inner_size)
+	return inner_rect.has_point(local_pos)
+
+
+func _is_over_transition_area() -> bool:
+	if not magnifier_active:
+		return false
+	var local_pos := get_local_mouse_position()
+	for ta in _transition_areas:
+		if _is_in_transition_zone(ta, local_pos, current_zoom):
+			return true
+	return false
+
+
+func _update_transition_pulse() -> void:
+	var over_ta := _is_over_transition_area()
+	if over_ta == _is_transition_ready:
+		return
+	_is_transition_ready = over_ta
+	if over_ta:
+		_start_transition_pulse()
+	else:
+		_stop_transition_pulse()
+
+
+func _start_transition_pulse() -> void:
+	if _transition_pulse_tween:
+		_transition_pulse_tween.kill()
+	var half_duration := 0.5 / transition_pulse_rate
+	var peak := Vector2.ONE * (1.0 + transition_pulse_amplitude)
+	_transition_pulse_tween = create_tween().set_loops()
+	_transition_pulse_tween.tween_property(magnifier_circle, "scale", peak, half_duration) \
+		.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+	_transition_pulse_tween.tween_property(magnifier_circle, "scale", Vector2.ONE, half_duration) \
+		.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+
+
+func _stop_transition_pulse() -> void:
+	if _transition_pulse_tween:
+		_transition_pulse_tween.kill()
+		_transition_pulse_tween = null
+	magnifier_circle.scale = Vector2.ONE
 
 
 # ─── Vignette HUD ──────────────────────────────────────────────
