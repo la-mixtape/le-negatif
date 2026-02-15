@@ -360,8 +360,38 @@ func _deselect_clue(clue: Node) -> void:
 	var index := _selected_clues.find(clue)
 	if index == -1:
 		return
+
+	var occupied_count := _selected_clues.size()
+	# Remove immediately so a second click during animation is treated as re-select
 	_selected_clues.remove_at(index)
-	_rebuild_vignette_display()
+
+	var slot_size := VIGNETTE_IMAGE_SIZE + vignette_frame_width * 2.0
+
+	if index == occupied_count - 1:
+		# Last slot: just slide it out, no repositioning needed
+		var panel := _vignette_panels[index]
+		var img := _vignette_images[index]
+		if _vignette_tweens[index]:
+			_vignette_tweens[index].kill()
+		var tween := create_tween().set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_IN)
+		tween.tween_property(panel, "position", Vector2(slot_size, 0), VIGNETTE_SLIDE_DURATION)
+		tween.tween_callback(func(): img.texture = null)
+		_vignette_tweens[index] = tween
+	else:
+		# Non-last slot: slide out this panel and those below, then rebuild
+		var tween := create_tween().set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_IN)
+		tween.set_parallel(true)
+		for i in range(index, occupied_count):
+			if _vignette_tweens[i]:
+				_vignette_tweens[i].kill()
+			tween.tween_property(_vignette_panels[i], "position", Vector2(slot_size, 0), VIGNETTE_SLIDE_DURATION)
+		tween.chain().tween_callback(func():
+			for j in range(index, MAX_SELECTED_CLUES):
+				_vignette_images[j].texture = null
+			_rebuild_vignette_display()
+		)
+		for i in range(index, occupied_count):
+			_vignette_tweens[i] = tween
 
 
 func _check_chain_resolution() -> void:
