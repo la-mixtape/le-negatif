@@ -79,6 +79,12 @@ const VIGNETTE_MARGIN := 0.05
 const VIGNETTE_GAP := 12.0
 const VIGNETTE_SLIDE_DURATION := 0.3
 
+const COMPLETED_THUMB_SIZE := 64.0
+const COMPLETED_THUMB_FRAME := 2.0
+const COMPLETED_THUMB_GAP := 8.0
+const COMPLETED_THUMB_MARGIN := 16.0
+const COMPLETED_THUMB_SLIDE_DURATION := 0.3
+
 # Script references for type-safe child discovery
 const _ClueScript = preload("res://scripts/clue.gd")
 const _TAScript = preload("res://scripts/transition_area.gd")
@@ -134,6 +140,10 @@ var _deduction_overlay_active: bool = false
 var _deduction_overlay: Control
 var _deduction_overlay_panel: Control
 var _deduction_overlay_image: TextureRect
+
+# Completed deductions tray (bottom-right thumbnails)
+var _completed_tray: Control
+var _completed_thumbs: Array[Control] = []
 
 # ─── Clue & interaction state ───────────────────────────────────
 
@@ -199,6 +209,9 @@ func _ready() -> void:
 
 	# Build deduction completion overlay
 	_setup_deduction_overlay()
+
+	# Build completed deductions tray (bottom-right thumbnails)
+	_setup_completed_tray()
 
 	# Ensure magnifier draws on top of vignettes
 	# move_child(magnifier_container, -1)
@@ -456,6 +469,7 @@ func _on_viewport_resized() -> void:
 		_clamp_content_origin()
 		_update_zoom_transform()
 	_update_vignette_layout()
+	_update_completed_tray_layout()
 
 
 # ─── Coordinate conversion ──────────────────────────────────────
@@ -978,12 +992,84 @@ func _show_deduction_overlay(texture: Texture2D) -> void:
 
 
 func _dismiss_deduction_overlay() -> void:
-	"""Fade out the deduction overlay and check investigation completion."""
+	"""Fade out the deduction overlay, add thumbnail, and check investigation completion."""
+	var completed_texture := _deduction_overlay_image.texture
 	var tween := create_tween().set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_IN)
 	tween.tween_property(_deduction_overlay, "modulate:a", 0.0, deduction_fade_duration)
 	tween.tween_callback(func():
 		_deduction_overlay.visible = false
 		_deduction_overlay_image.texture = null
 		_deduction_overlay_active = false
+		if completed_texture:
+			_add_completed_thumbnail(completed_texture)
 		_check_investigation_complete()
 	)
+
+
+# ─── Completed deductions tray ──────────────────────────────────
+
+func _setup_completed_tray() -> void:
+	"""Build the bottom-right tray for completed deduction thumbnails."""
+	_completed_tray = Control.new()
+	_completed_tray.name = "CompletedTray"
+	_completed_tray.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_completed_tray.set_anchors_preset(Control.PRESET_FULL_RECT)
+	add_child(_completed_tray)
+
+	# Pre-populate thumbnails for already-completed deductions (persistence)
+	for did in _completed_deductions:
+		var def: DeductionDef = _deduction_defs.get(did)
+		if def and def.image:
+			_add_completed_thumbnail(def.image, false)
+
+
+func _add_completed_thumbnail(texture: Texture2D, animate: bool = true) -> void:
+	"""Add a 32x32 framed thumbnail to the completed tray."""
+	var fw := COMPLETED_THUMB_FRAME
+	var thumb_total := COMPLETED_THUMB_SIZE + fw * 2.0
+
+	var thumb := Control.new()
+	thumb.name = "CompletedThumb%d" % _completed_thumbs.size()
+	thumb.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	thumb.size = Vector2(thumb_total, thumb_total)
+	_completed_tray.add_child(thumb)
+
+	var frame := ColorRect.new()
+	frame.color = Color.WHITE
+	frame.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	frame.size = Vector2(thumb_total, thumb_total)
+	thumb.add_child(frame)
+
+	var img := TextureRect.new()
+	img.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	img.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
+	img.position = Vector2(fw, fw)
+	img.size = Vector2(COMPLETED_THUMB_SIZE, COMPLETED_THUMB_SIZE)
+	img.texture = texture
+	img.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	thumb.add_child(img)
+
+	_completed_thumbs.append(thumb)
+	_update_completed_tray_layout(animate)
+
+
+func _update_completed_tray_layout(animate_last: bool = false) -> void:
+	"""Position all thumbnails horizontally at the bottom-right."""
+	var fw := COMPLETED_THUMB_FRAME
+	var thumb_total := COMPLETED_THUMB_SIZE + fw * 2.0
+	var count := _completed_thumbs.size()
+
+	var total_width := count * thumb_total + maxf(0, count - 1) * COMPLETED_THUMB_GAP
+	var start_x := size.x - COMPLETED_THUMB_MARGIN - total_width
+	var target_y := size.y - COMPLETED_THUMB_MARGIN - thumb_total
+
+	for i in count:
+		var thumb: Control = _completed_thumbs[i]
+		var target_pos := Vector2(start_x + i * (thumb_total + COMPLETED_THUMB_GAP), target_y)
+
+		if animate_last and i == count - 1:
+			thumb.position = Vector2(target_pos.x, size.y)
+			var tw := create_tween().set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+			tw.tween_property(thumb, "position", target_pos, COMPLETED_THUMB_SLIDE_DURATION)
+		else:
+			thumb.position = target_pos
