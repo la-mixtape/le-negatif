@@ -6,7 +6,7 @@ class_name Clue
 ## Must be placed as a direct child of an Investigation scene.
 ## Uses Polygon2D's built-in polygon for the clickable area (edit with the polygon editor).
 ## The polygon is only visible in the editor; at runtime it is transparent.
-## The vignette region is computed automatically from the polygon AABB + padding.
+## The vignette region is defined by vignette_offset + vignette_extent exports.
 
 ## Label shown in the Inspector when no deduction is assigned
 const _EMPTY_LABEL := "(Empty)"
@@ -14,10 +14,16 @@ const _EMPTY_LABEL := "(Empty)"
 ## Backing store for the deduction this clue belongs to
 var _deduction_id: String = ""
 
-## Fraction of the polygon AABB to pad on each side for the vignette region
-@export var vignette_padding: Vector2 = Vector2(0.05, 0.05):
+## Center of the vignette square relative to the Clue origin
+@export var vignette_offset: Vector2 = Vector2.ZERO:
 	set(value):
-		vignette_padding = value
+		vignette_offset = value
+		queue_redraw()
+
+## Half-size of the vignette square
+@export var vignette_extent: float = 50.0:
+	set(value):
+		vignette_extent = maxf(value, 1.0)
 		queue_redraw()
 
 ## Moves the node's position to the polygon centroid and recenters vertices
@@ -96,7 +102,7 @@ func _draw() -> void:
 		var outline := PackedVector2Array(polygon)
 		outline.append(polygon[0])
 		draw_polyline(outline, Color(0.2, 0.8, 0.2, 0.8), 2.0)
-	# Vignette rect preview (orange)
+	# Vignette square preview (orange)
 	var vr := get_vignette_rect_local()
 	if vr.size != Vector2.ZERO:
 		draw_rect(vr, Color(1.0, 0.6, 0.2, 0.2))
@@ -104,19 +110,11 @@ func _draw() -> void:
 
 
 func get_vignette_rect_local() -> Rect2:
-	"""Returns the vignette rect in Clue local space (polygon AABB + padding)."""
-	if polygon.size() < 3:
-		return Rect2()
-	var min_pt := Vector2(polygon[0])
-	var max_pt := Vector2(polygon[0])
-	for i in range(1, polygon.size()):
-		min_pt.x = minf(min_pt.x, polygon[i].x)
-		min_pt.y = minf(min_pt.y, polygon[i].y)
-		max_pt.x = maxf(max_pt.x, polygon[i].x)
-		max_pt.y = maxf(max_pt.y, polygon[i].y)
-	var aabb := Rect2(min_pt, max_pt - min_pt)
-	var expand := aabb.size * vignette_padding
-	return aabb.grow_individual(expand.x, expand.y, expand.x, expand.y)
+	"""Returns the vignette square in Clue local space from offset + extent."""
+	return Rect2(
+		vignette_offset - Vector2(vignette_extent, vignette_extent),
+		Vector2(vignette_extent * 2, vignette_extent * 2)
+	)
 
 
 func _center_transform() -> void:
