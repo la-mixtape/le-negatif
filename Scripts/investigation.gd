@@ -11,7 +11,7 @@ class_name Investigation
 @export var max_zoom: float = 4.0
 
 ## Minimum zoom level for the magnifier (1 = no zoom)
-@export var min_zoom: float = 1.0
+@export var min_zoom: float = 2.0
 
 ## Size of the magnifier as a percentage of screen height
 @export_range(0.05, 0.5) var magnifier_size_percent: float = 0.125
@@ -173,37 +173,26 @@ func _ready() -> void:
 
 
 func _input(event: InputEvent) -> void:
-	# Scroll wheel: full-image zoom
-	if event is InputEventMouseButton and event.pressed:
-		if event.button_index == MOUSE_BUTTON_WHEEL_UP:
-			_image_zoom_out()
-			get_viewport().set_input_as_handled()
-			return
-		if event.button_index == MOUSE_BUTTON_WHEEL_DOWN:
-			_image_zoom_in()
-			get_viewport().set_input_as_handled()
-			return
-
-	# Toggle magnifier with M key
-	if event.is_action_pressed("toggle_magnifier"):
+	# Right-click toggles magnifier
+	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_RIGHT and event.pressed:
 		_toggle_magnifier()
 		get_viewport().set_input_as_handled()
 		return
 
-	# Magnifier zoom: keyboard only (E/A/+/- keys, not scroll wheel)
-	if magnifier_active and event is InputEventKey and event.pressed and not event.echo:
-		var is_zoom_in := event.is_action_pressed("zoom_in")
-		var is_zoom_out := event.is_action_pressed("zoom_out")
-		if event.unicode == 43 or event.keycode == KEY_KP_ADD:
-			is_zoom_in = true
-		elif event.unicode == 45 or event.keycode == KEY_KP_SUBTRACT:
-			is_zoom_out = true
-		if is_zoom_in:
-			zoom_in()
+	# Scroll wheel: magnifier zoom when active, otherwise full-image zoom
+	if event is InputEventMouseButton and event.pressed:
+		if event.button_index == MOUSE_BUTTON_WHEEL_UP:
+			if magnifier_active:
+				zoom_out()
+			else:
+				_image_zoom_out()
 			get_viewport().set_input_as_handled()
 			return
-		if is_zoom_out:
-			zoom_out()
+		if event.button_index == MOUSE_BUTTON_WHEEL_DOWN:
+			if magnifier_active:
+				zoom_in()
+			else:
+				_image_zoom_in()
 			get_viewport().set_input_as_handled()
 			return
 
