@@ -2,10 +2,18 @@
 
 [ext_resource type="PackedScene" uid="uid://b7k3n8v2qxp1m" path="res://scenes/templates/investigation.tscn" id="1_k17w2"]
 [ext_resource type="Texture2D" uid="uid://djfgw1cfc0utw" path="res://assets/images/CliffDwellers.png" id="2_3xnvt"]
+[ext_resource type="Script" uid="uid://dytxc18gk03ci" path="res://scripts/deduction_def.gd" id="2_nnhdc"]
+[ext_resource type="Texture2D" uid="uid://jfmlnno0peq4" path="res://assets/images/placeholder.jpg" id="3_0yv7r"]
 [ext_resource type="PackedScene" uid="uid://xgx3rdksgdgx" path="res://scenes/templates/clue.tscn" id="3_8c6o4"]
 [ext_resource type="PackedScene" path="res://scenes/templates/transition_area.tscn" id="3_45inw"]
 
+[sub_resource type="Resource" id="Resource_nnhdc"]
+script = ExtResource("2_nnhdc")
+deduction_id = "FirstDeduction"
+image = ExtResource("3_0yv7r")
+
 [node name="Investigation" unique_id=1371006165 instance=ExtResource("1_k17w2")]
+deductions = Array[ExtResource("2_nnhdc")]([SubResource("Resource_nnhdc")])
 
 [node name="BaseImage" parent="AspectContainer" index="0"]
 texture = ExtResource("2_3xnvt")
@@ -19,13 +27,16 @@ target_scene = "uid://c2lb37l5a6i2y"
 [node name="Clue" parent="AspectContainer" index="2" unique_id=175460932 instance=ExtResource("3_8c6o4")]
 position = Vector2(378.5, 425.77777)
 polygon = PackedVector2Array(-32.5, -22.777779, -26.5, -34.77778, -21.5, -43.77778, -8.5, -52.77778, 6.5, -51.77778, 21.5, -55.77778, 27.5, -37.77778, 32.5, -29.777779, 32.5, -21.777779, 25.5, -21.777779, 9.5, -7.7777786, 3.5, 47.22222, 6.5, 60.22222, 20.5, 70.22222, -7.5, 70.22222, -31.5, 73.22222, -21.5, 63.22222, -36.5, -3.7777786)
+deduction_id = "FirstDeduction"
 
 [node name="Clue2" parent="AspectContainer" index="3" unique_id=77946191 instance=ExtResource("3_8c6o4")]
 position = Vector2(671.2308, 402.30768)
 polygon = PackedVector2Array(-31.23077, -1.3076916, -22.23077, -8.307692, -17.23077, -13.307692, -10.23077, -22.307692, -2.23077, -20.307692, -2.23077, -9.307692, 11.76923, -9.307692, 26.76923, -2.3076916, 38.76923, 13.692308, 14.76923, 1.6923084, -0.23077011, 23.692308, -3.23077, 23.692308, -3.23077, 23.692308)
 vignette_padding = Vector2(0.25, 0.67)
+deduction_id = "FirstDeduction"
 
 [node name="Clue" parent="." index="3" unique_id=67168844 instance=ExtResource("3_8c6o4")]
 position = Vector2(1866, 183.25)
 polygon = PackedVector2Array(-37, -32.25, -31, 53.75, 36, 37.75, 32, -59.25)
 vignette_padding = Vector2(0.56, 0.26)
+deduction_id = "FirstDeduction"

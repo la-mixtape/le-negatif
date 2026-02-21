@@ -36,6 +36,23 @@ class_name Investigation
 ## Duration of the vignette hover fade (seconds)
 @export var vignette_hover_duration: float = 0.5
 
+# ─── Deduction exports ──────────────────────────────────────────
+
+## Deduction definitions for this investigation
+@export var deductions: Array[DeductionDef] = []
+
+## Duration for deduction image display fade-in/out (seconds)
+@export var deduction_fade_duration: float = 0.4
+
+## Width of white frame around the centered deduction image (pixels)
+@export var deduction_frame_width: float = 8.0
+
+## Size of the centered deduction image as fraction of screen height
+@export_range(0.2, 0.8) var deduction_image_size_percent: float = 0.5
+
+## Seconds to hold green-framed vignettes before showing deduction image
+@export var deduction_hold_duration: float = 1.0
+
 # ─── Transition exports ─────────────────────────────────────────
 
 ## Magnifier pulsation rate when a transition is available (pulses per second)
@@ -57,7 +74,6 @@ class_name Investigation
 
 # ─── Constants ──────────────────────────────────────────────────
 
-const MAX_SELECTED_CLUES := 3
 const VIGNETTE_IMAGE_SIZE := 200.0
 const VIGNETTE_MARGIN := 0.05
 const VIGNETTE_GAP := 12.0
@@ -106,6 +122,18 @@ var _zoom_container: Control
 var _pan_start_pos: Vector2 = Vector2.ZERO
 var _pan_last_pos: Vector2 = Vector2.ZERO
 var _pan_active: bool = false
+
+# ─── Deduction state ─────────────────────────────────────────────
+
+var _max_clues_per_deduction: int = 3
+var _deduction_defs: Dictionary = {}
+var _deduction_clues: Dictionary = {}
+var _completed_deductions: Dictionary = {}
+var _deduction_overlay_active: bool = false
+
+var _deduction_overlay: Control
+var _deduction_overlay_panel: Control
+var _deduction_overlay_image: TextureRect
 
 # ─── Clue & interaction state ───────────────────────────────────
 
@@ -163,16 +191,28 @@ func _ready() -> void:
 
 	# Discover game objects placed as children
 	_setup_clues()
+	_setup_deductions()
 	_setup_transition_areas()
 
 	# Build vignette HUD for clue display
 	_setup_vignette_hud()
+
+	# Build deduction completion overlay
+	_setup_deduction_overlay()
 
 	# Ensure magnifier draws on top of vignettes
 	# move_child(magnifier_container, -1)
 
 
 func _input(event: InputEvent) -> void:
+	# Block all input except click-to-dismiss while deduction overlay is shown
+	if _deduction_overlay_active:
+		if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and not event.pressed:
+			if not _pan_active:
+				_dismiss_deduction_overlay()
+				get_viewport().set_input_as_handled()
+		return
+
 	# Right-click toggles magnifier
 	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_RIGHT and event.pressed:
 		_toggle_magnifier()
@@ -464,6 +504,11 @@ func _container_rect_to_image_rect(container_rect: Rect2) -> Rect2:
 
 func _handle_click() -> bool:
 	"""Process a click event. Returns true if something was interacted with."""
+	# Dismiss deduction overlay on any click
+	if _deduction_overlay_active:
+		_dismiss_deduction_overlay()
+		return true
+
 	# Check transition areas first (in Investigation local space)
 	if _try_transition():
 		return true
@@ -471,7 +516,7 @@ func _handle_click() -> bool:
 	# Check clue polygons (transform-agnostic via to_local)
 	var global_mouse := get_global_mouse_position()
 	for clue in _clues:
-		if GameManager.is_clue_discovered(clue.clue_id):
+		if _completed_deductions.has(clue.deduction_id):
 			continue
 		var clue_local: Vector2 = clue.to_local(global_mouse)
 		if Geometry2D.is_point_in_polygon(clue_local, clue.polygon):
@@ -490,14 +535,19 @@ func _setup_clues() -> void:
 func _toggle_clue(clue: Node) -> void:
 	if clue in _selected_clues:
 		_deselect_clue(clue)
-	elif _selected_clues.size() < MAX_SELECTED_CLUES:
+	elif _selected_clues.size() < _max_clues_per_deduction:
 		_select_clue(clue)
 
 
 func _select_clue(clue: Node) -> void:
 	_selected_clues.append(clue)
 	_rebuild_vignette_display()
-	_check_chain_resolution()
+	# Wait for the slide-in animation to finish before checking deduction
+	var tween_idx := _selected_clues.size() - 1
+	var slide_tween = _vignette_tweens[tween_idx]
+	if slide_tween:
+		await slide_tween.finished
+	_check_deduction_completion()
 
 
 func _deselect_clue(clue: Node) -> void:
@@ -530,7 +580,7 @@ func _deselect_clue(clue: Node) -> void:
 				_vignette_tweens[i].kill()
 			tween.tween_property(_vignette_panels[i], "position", Vector2(slot_size, 0), VIGNETTE_SLIDE_DURATION)
 		tween.chain().tween_callback(func():
-			for j in range(index, MAX_SELECTED_CLUES):
+			for j in range(index, _max_clues_per_deduction):
 				_vignette_images[j].texture = null
 			_rebuild_vignette_display()
 		)
@@ -538,57 +588,111 @@ func _deselect_clue(clue: Node) -> void:
 			_vignette_tweens[i] = tween
 
 
-func _check_chain_resolution() -> void:
-	"""Check if selected clues form a complete chain and resolve it."""
-	if _selected_clues.size() < 2:
-		return
+func _setup_deductions() -> void:
+	"""Build deduction lookups from exported definitions and discovered clues."""
+	for deduction in deductions:
+		if not deduction.deduction_id.is_empty():
+			_deduction_defs[deduction.deduction_id] = deduction
 
-	# Build lookup of selected clues by ID
-	var selected_by_id: Dictionary = {}
-	for clue in _selected_clues:
-		selected_by_id[clue.clue_id] = clue
-
-	# Find clues pointed to as "next" by another selected clue
-	var pointed_to: Dictionary = {}
-	for clue in _selected_clues:
-		if not clue.next_clue_id.is_empty() and selected_by_id.has(clue.next_clue_id):
-			pointed_to[clue.next_clue_id] = true
-
-	# Try each potential chain start (not pointed to by another selected clue)
-	for clue in _selected_clues:
-		if pointed_to.has(clue.clue_id):
+	for clue in _clues:
+		var did: String = clue.deduction_id
+		if did.is_empty():
 			continue
+		if not _deduction_clues.has(did):
+			_deduction_clues[did] = []
+		_deduction_clues[did].append(clue)
 
-		# Walk chain from this start
-		var chain: Array = [clue]
-		var current: Node = clue
-		while not current.next_clue_id.is_empty() and selected_by_id.has(current.next_clue_id):
-			current = selected_by_id[current.next_clue_id]
-			chain.append(current)
+	# Max vignette slots = largest clue group (minimum 3)
+	var max_count := 3
+	for did in _deduction_clues:
+		max_count = maxi(max_count, _deduction_clues[did].size())
+	_max_clues_per_deduction = max_count
 
-		# Complete chain: last clue has no successor and chain has 2+ clues
-		if current.next_clue_id.is_empty() and chain.size() >= 2:
-			_resolve_chain(chain)
+	# Pre-populate completed deductions from GameManager (persistence across scenes)
+	for did in _deduction_clues:
+		if GameManager.is_deduction_completed(did):
+			_completed_deductions[did] = true
+
+
+func _check_deduction_completion() -> void:
+	"""Check if all clues for any deduction are selected, and resolve it."""
+	for deduction_id in _deduction_clues:
+		if _completed_deductions.has(deduction_id):
+			continue
+		var required_clues: Array = _deduction_clues[deduction_id]
+		var all_selected := true
+		for clue in required_clues:
+			if clue not in _selected_clues:
+				all_selected = false
+				break
+		if all_selected:
+			_resolve_deduction(deduction_id, required_clues)
 			return
 
 
-func _resolve_chain(chain: Array) -> void:
-	"""Mark all clues in a completed chain as discovered."""
-	for clue in chain:
-		GameManager.discover_clue(clue.clue_id)
+func _resolve_deduction(deduction_id: String, clues: Array) -> void:
+	"""Complete a deduction: turn frames green, hold, slide out, show deduction image."""
+	_completed_deductions[deduction_id] = true
+	GameManager.complete_deduction(deduction_id)
 
-	for clue in chain:
+	# Turn all occupied vignette frames green
+	for i in _selected_clues.size():
+		_vignette_frames[i].color = Color.GREEN
+
+	# Hold the green-framed vignettes on screen
+	await get_tree().create_timer(deduction_hold_duration).timeout
+
+	# Remove resolved clues from selection
+	for clue in clues:
 		var idx := _selected_clues.find(clue)
 		if idx != -1:
 			_selected_clues.remove_at(idx)
 
-	_rebuild_vignette_display()
-	_check_investigation_complete()
+	# Reset frame colors back to white
+	for i in _max_clues_per_deduction:
+		_vignette_frames[i].color = Color.WHITE
+
+	# Slide all vignettes out, then show deduction image
+	_slide_all_vignettes_out(func():
+		var def: DeductionDef = _deduction_defs.get(deduction_id)
+		if def and def.image:
+			_show_deduction_overlay(def.image)
+		else:
+			_check_investigation_complete()
+	)
+
+
+func _slide_all_vignettes_out(on_complete: Callable) -> void:
+	"""Slide all occupied vignette panels out to the right, then call on_complete."""
+	var slot_size := VIGNETTE_IMAGE_SIZE + vignette_frame_width * 2.0
+	var any_visible := false
+
+	var tween := create_tween().set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_IN)
+	tween.set_parallel(true)
+	for i in _max_clues_per_deduction:
+		if _vignette_tweens[i]:
+			_vignette_tweens[i].kill()
+		if _vignette_images[i].texture:
+			any_visible = true
+			tween.tween_property(
+				_vignette_panels[i], "position",
+				Vector2(slot_size, 0), VIGNETTE_SLIDE_DURATION
+			)
+
+	if any_visible:
+		tween.chain().tween_callback(func():
+			for j in _max_clues_per_deduction:
+				_vignette_images[j].texture = null
+			on_complete.call()
+		)
+	else:
+		on_complete.call()
 
 
 func _check_investigation_complete() -> void:
-	for clue in _clues:
-		if not GameManager.is_clue_discovered(clue.clue_id):
+	"""Check if all deductions are completed."""
+	for deduction_id in _deduction_clues:
+		if not _completed_deductions.has(deduction_id):
 			return
 	GameManager.complete_investigation(scene_file_path)
 
@@ -685,7 +789,7 @@ func _setup_vignette_hud() -> void:
 	var fw := vignette_frame_width
 	var slot_size := VIGNETTE_IMAGE_SIZE + fw * 2.0
 
-	for i in MAX_SELECTED_CLUES:
+	for i in _max_clues_per_deduction:
 		# Clip container (fixed position, hides content when slid out)
 		var slot := Control.new()
 		slot.name = "VignetteSlot%d" % i
@@ -740,7 +844,7 @@ func _update_vignette_layout() -> void:
 	var margin_x := size.x * VIGNETTE_MARGIN
 	var margin_y := size.y * VIGNETTE_MARGIN
 	var slot_x := size.x - margin_x - slot_size
-	for i in MAX_SELECTED_CLUES:
+	for i in _max_clues_per_deduction:
 		var slot_y := margin_y + i * (slot_size + VIGNETTE_GAP)
 		_vignette_slots[i].position = Vector2(slot_x, slot_y)
 		_vignette_slots[i].size = Vector2(slot_size, slot_size)
@@ -748,7 +852,7 @@ func _update_vignette_layout() -> void:
 
 func _rebuild_vignette_display() -> void:
 	var slot_size := VIGNETTE_IMAGE_SIZE + vignette_frame_width * 2.0
-	for i in MAX_SELECTED_CLUES:
+	for i in _max_clues_per_deduction:
 		var panel := _vignette_panels[i]
 		var img := _vignette_images[i]
 
@@ -793,3 +897,93 @@ func _on_vignette_hover(index: int, hovered: bool) -> void:
 	var tween := create_tween().set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
 	tween.tween_property(panel, "modulate:a", target, vignette_hover_duration)
 	_vignette_hover_tweens[index] = tween
+
+
+# ─── Deduction overlay ─────────────────────────────────────────
+
+func _setup_deduction_overlay() -> void:
+	"""Build the centered deduction image overlay (hidden by default)."""
+	_deduction_overlay = Control.new()
+	_deduction_overlay.name = "DeductionOverlay"
+	_deduction_overlay.mouse_filter = Control.MOUSE_FILTER_STOP
+	_deduction_overlay.set_anchors_preset(Control.PRESET_FULL_RECT)
+	_deduction_overlay.visible = false
+	add_child(_deduction_overlay)
+
+	# Semi-transparent background dimmer
+	var dimmer := ColorRect.new()
+	dimmer.name = "Dimmer"
+	dimmer.color = Color(0, 0, 0, 0.5)
+	dimmer.set_anchors_preset(Control.PRESET_FULL_RECT)
+	dimmer.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_deduction_overlay.add_child(dimmer)
+
+	# CenterContainer for auto-centering the panel
+	var center := CenterContainer.new()
+	center.name = "Center"
+	center.set_anchors_preset(Control.PRESET_FULL_RECT)
+	center.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_deduction_overlay.add_child(center)
+
+	# Panel holding frame + image
+	_deduction_overlay_panel = Control.new()
+	_deduction_overlay_panel.name = "DeductionPanel"
+	_deduction_overlay_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	center.add_child(_deduction_overlay_panel)
+
+	# White frame
+	var frame := ColorRect.new()
+	frame.name = "Frame"
+	frame.color = Color.WHITE
+	frame.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_deduction_overlay_panel.add_child(frame)
+
+	# Deduction image
+	_deduction_overlay_image = TextureRect.new()
+	_deduction_overlay_image.name = "DeductionImage"
+	_deduction_overlay_image.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	_deduction_overlay_image.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
+	_deduction_overlay_image.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_deduction_overlay_panel.add_child(_deduction_overlay_image)
+
+
+func _show_deduction_overlay(texture: Texture2D) -> void:
+	"""Display the deduction completion image centered on screen."""
+	_deduction_overlay_active = true
+
+	var img_height := size.y * deduction_image_size_percent
+	var aspect := texture.get_size().x / texture.get_size().y
+	var img_width := img_height * aspect
+	var fw := deduction_frame_width
+
+	var panel_size := Vector2(img_width + fw * 2.0, img_height + fw * 2.0)
+	_deduction_overlay_panel.custom_minimum_size = panel_size
+	_deduction_overlay_panel.size = panel_size
+
+	# Frame fills the panel
+	var frame := _deduction_overlay_panel.get_node("Frame") as ColorRect
+	frame.position = Vector2.ZERO
+	frame.size = panel_size
+
+	# Image inset by frame width
+	_deduction_overlay_image.position = Vector2(fw, fw)
+	_deduction_overlay_image.size = Vector2(img_width, img_height)
+	_deduction_overlay_image.texture = texture
+
+	_deduction_overlay.modulate.a = 0.0
+	_deduction_overlay.visible = true
+
+	var tween := create_tween().set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+	tween.tween_property(_deduction_overlay, "modulate:a", 1.0, deduction_fade_duration)
+
+
+func _dismiss_deduction_overlay() -> void:
+	"""Fade out the deduction overlay and check investigation completion."""
+	var tween := create_tween().set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_IN)
+	tween.tween_property(_deduction_overlay, "modulate:a", 0.0, deduction_fade_duration)
+	tween.tween_callback(func():
+		_deduction_overlay.visible = false
+		_deduction_overlay_image.texture = null
+		_deduction_overlay_active = false
+		_check_investigation_complete()
+	)

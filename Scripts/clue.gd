@@ -8,8 +8,11 @@ class_name Clue
 ## The polygon is only visible in the editor; at runtime it is transparent.
 ## The vignette region is computed automatically from the polygon AABB + padding.
 
-## Unique identifier for this clue
-@export var clue_id: String = ""
+## Label shown in the Inspector when no deduction is assigned
+const _EMPTY_LABEL := "(Empty)"
+
+## Backing store for the deduction this clue belongs to
+var _deduction_id: String = ""
 
 ## Fraction of the polygon AABB to pad on each side for the vignette region
 @export var vignette_padding: Vector2 = Vector2(0.05, 0.05):
@@ -17,11 +20,13 @@ class_name Clue
 		vignette_padding = value
 		queue_redraw()
 
-## ID of the next clue in the assembly sequence (empty = end of chain)
-@export var next_clue_id: String = ""
-
 ## Moves the node's position to the polygon centroid and recenters vertices
 @export_tool_button("Reset Xform", "ToolMove") var _reset_xform = _center_transform
+
+
+func _enter_tree() -> void:
+	if Engine.is_editor_hint():
+		notify_property_list_changed()
 
 
 func _ready() -> void:
@@ -29,6 +34,58 @@ func _ready() -> void:
 		color = Color(0.2, 0.8, 0.2, 0.2)
 	else:
 		color = Color.TRANSPARENT
+
+
+func _set(property: StringName, value: Variant) -> bool:
+	if property == &"deduction_id":
+		_deduction_id = "" if str(value) == _EMPTY_LABEL else str(value)
+		return true
+	return false
+
+
+func _get(property: StringName) -> Variant:
+	if property == &"deduction_id":
+		if Engine.is_editor_hint() and _deduction_id.is_empty():
+			return _EMPTY_LABEL
+		return _deduction_id
+	return null
+
+
+func _get_property_list() -> Array[Dictionary]:
+	var hint := PROPERTY_HINT_ENUM
+	var hint_string := _EMPTY_LABEL
+
+	if Engine.is_editor_hint() and is_inside_tree():
+		var ids := _get_investigation_deduction_ids()
+		if ids.size() > 0:
+			hint_string = _EMPTY_LABEL + "," + ",".join(ids)
+
+	var prop := {
+		"name": "deduction_id",
+		"type": TYPE_STRING,
+		"hint": hint,
+		"hint_string": hint_string,
+		"usage": PROPERTY_USAGE_DEFAULT,
+	}
+	var props: Array[Dictionary] = [prop]
+	return props
+
+
+func _get_investigation_deduction_ids() -> PackedStringArray:
+	"""Walk up the tree to find the parent Investigation and return its deduction IDs."""
+	var ids := PackedStringArray()
+	var node := get_parent()
+	while node:
+		if node is Investigation:
+			var deductions_arr = node.get("deductions")
+			if deductions_arr:
+				for d in deductions_arr:
+					if d is DeductionDef and not d.deduction_id.is_empty():
+						if not ids.has(d.deduction_id):
+							ids.append(d.deduction_id)
+			break
+		node = node.get_parent()
+	return ids
 
 
 func _draw() -> void:

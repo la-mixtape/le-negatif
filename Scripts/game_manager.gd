@@ -9,6 +9,9 @@ signal investigation_changed(investigation_id: String, sub_index: int)
 ## Signal emitted when a clue is discovered
 signal clue_discovered(clue_id: String)
 
+## Signal emitted when a deduction is completed
+signal deduction_completed(deduction_id: String)
+
 ## Signal emitted when an investigation is completed
 signal investigation_completed(investigation_id: String)
 
@@ -20,6 +23,9 @@ var current_sub_investigation: int = 0
 
 ## Dictionary tracking discovered clues
 var discovered_clues: Dictionary = {}
+
+## Dictionary tracking completed deductions
+var completed_deductions: Dictionary = {}
 
 ## Dictionary tracking completed investigations
 var completed_investigations: Dictionary = {}
@@ -67,6 +73,18 @@ func is_clue_discovered(clue_id: String) -> bool:
 	return discovered_clues.get(clue_id, false)
 
 
+func complete_deduction(deduction_id: String) -> void:
+	"""Register a completed deduction"""
+	if not completed_deductions.has(deduction_id):
+		completed_deductions[deduction_id] = true
+		deduction_completed.emit(deduction_id)
+
+
+func is_deduction_completed(deduction_id: String) -> bool:
+	"""Check if a deduction has been completed"""
+	return completed_deductions.get(deduction_id, false)
+
+
 func is_investigation_completed(investigation_id: String) -> bool:
 	"""Check if an investigation has been completed"""
 	return completed_investigations.get(investigation_id, false)
@@ -95,6 +113,7 @@ func save_game() -> Dictionary:
 		"current_investigation": current_investigation_id,
 		"current_sub": current_sub_investigation,
 		"clues": discovered_clues.duplicate(),
+		"deductions": completed_deductions.duplicate(),
 		"completed": completed_investigations.duplicate(),
 		"scene_stack": scene_stack.duplicate(),
 	}
@@ -105,6 +124,7 @@ func load_game(save_data: Dictionary) -> void:
 	current_investigation_id = save_data.get("current_investigation", "")
 	current_sub_investigation = save_data.get("current_sub", 0)
 	discovered_clues = save_data.get("clues", {}).duplicate()
+	completed_deductions = save_data.get("deductions", {}).duplicate()
 	completed_investigations = save_data.get("completed", {}).duplicate()
 	var stack = save_data.get("scene_stack", [])
 	scene_stack.clear()
