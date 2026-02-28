@@ -1,9 +1,11 @@
-[gd_scene format=3 uid="uid://c3pgmp3pajxh7"]
+[gd_scene load_steps=3 format=3 uid="uid://c3pgmp3pajxh7"]
 
 [ext_resource type="PackedScene" uid="uid://b7k3n8v2qxp1m" path="res://scenes/templates/investigation.tscn" id="1_b0jay"]
 [ext_resource type="Texture2D" uid="uid://jqqydc54i7gb" path="res://assets/images/tableau.jpg" id="2_4h6mn"]
+[ext_resource type="Resource" path="res://data/investigations/cliff_investigation.tres" id="3_invdef"]
 
 [node name="Investigation" unique_id=1592823375 instance=ExtResource("1_b0jay")]
+investigation_def_override = ExtResource("3_invdef")
 
 [node name="BaseImage" parent="AspectContainer" index="0"]
 texture = ExtResource("2_4h6mn")

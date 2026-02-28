@@ -1,58 +1,12 @@
-[gd_scene format=3 uid="uid://gfb2ma1mi2by"]
+[gd_scene load_steps=4 format=3 uid="uid://gfb2ma1mi2by"]
 
 [ext_resource type="PackedScene" uid="uid://b7k3n8v2qxp1m" path="res://scenes/templates/investigation.tscn" id="1_fd3qo"]
-[ext_resource type="Script" uid="uid://dytxc18gk03ci" path="res://scripts/deduction_def.gd" id="2_g6cw0"]
-[ext_resource type="Texture2D" uid="uid://jfmlnno0peq4" path="res://assets/images/placeholder.jpg" id="3_rhm8l"]
 [ext_resource type="Texture2D" uid="uid://dq15fqs3jaivj" path="res://assets/images/scene7kv3.png" id="4_krour"]
 [ext_resource type="PackedScene" uid="uid://xgx3rdksgdgx" path="res://scenes/templates/clue.tscn" id="5_151vr"]
-
-[sub_resource type="Resource" id="Resource_ftjqv"]
-script = ExtResource("2_g6cw0")
-deduction_id = "FamilyNames"
-image = ExtResource("3_rhm8l")
-metadata/_custom_type_script = "uid://dytxc18gk03ci"
-
-[sub_resource type="Resource" id="Resource_olpc2"]
-script = ExtResource("2_g6cw0")
-deduction_id = "TheyAreMafia"
-metadata/_custom_type_script = "uid://dytxc18gk03ci"
-
-[sub_resource type="Resource" id="Resource_n7wqt"]
-script = ExtResource("2_g6cw0")
-deduction_id = "AnnaLovesEnzo"
-image = ExtResource("3_rhm8l")
-metadata/_custom_type_script = "uid://dytxc18gk03ci"
-
-[sub_resource type="Resource" id="Resource_ehfpo"]
-script = ExtResource("2_g6cw0")
-deduction_id = "IdentifyRoom"
-image = ExtResource("3_rhm8l")
-metadata/_custom_type_script = "uid://dytxc18gk03ci"
-
-[sub_resource type="Resource" id="Resource_g6cw0"]
-script = ExtResource("2_g6cw0")
-deduction_id = "BlackMail"
-image = ExtResource("3_rhm8l")
-metadata/_custom_type_script = "uid://dytxc18gk03ci"
-
-[sub_resource type="Resource" id="Resource_rhm8l"]
-script = ExtResource("2_g6cw0")
-metadata/_custom_type_script = "uid://dytxc18gk03ci"
-
-[sub_resource type="Resource" id="Resource_krour"]
-script = ExtResource("2_g6cw0")
-deduction_id = "SchoolBudget"
-image = ExtResource("3_rhm8l")
-metadata/_custom_type_script = "uid://dytxc18gk03ci"
-
-[sub_resource type="Resource" id="Resource_151vr"]
-script = ExtResource("2_g6cw0")
-deduction_id = "HeistTools"
-image = ExtResource("3_rhm8l")
-metadata/_custom_type_script = "uid://dytxc18gk03ci"
+[ext_resource type="Resource" path="res://data/investigations/building_investigation.tres" id="6_invdef"]
 
 [node name="Investigation" unique_id=954780573 instance=ExtResource("1_fd3qo")]
-deductions = Array[ExtResource("2_g6cw0")]([SubResource("Resource_ftjqv"), SubResource("Resource_olpc2"), SubResource("Resource_n7wqt"), SubResource("Resource_ehfpo"), SubResource("Resource_g6cw0"), SubResource("Resource_rhm8l"), SubResource("Resource_krour"), SubResource("Resource_151vr")])
+investigation_def_override = ExtResource("6_invdef")
 
 [node name="BaseImage" parent="AspectContainer" index="0"]
 texture = ExtResource("4_krour")

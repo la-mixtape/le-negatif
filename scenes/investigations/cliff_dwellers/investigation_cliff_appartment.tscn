@@ -3,8 +3,11 @@
 [ext_resource type="PackedScene" uid="uid://b7k3n8v2qxp1m" path="res://scenes/templates/investigation.tscn" id="1_161t6"]
 [ext_resource type="Texture2D" uid="uid://cjefmx2sxfvpg" path="res://assets/images/apartment.jpg" id="2_10qxv"]
 [ext_resource type="PackedScene" path="res://scenes/templates/transition_area.tscn" id="3_2ghpb"]
+[ext_resource type="Resource" uid="uid://ouwsox3y8taq" path="res://data/investigations/cliff_investigation.tres" id="4_invdef"]
+[ext_resource type="PackedScene" uid="uid://xgx3rdksgdgx" path="res://scenes/templates/clue.tscn" id="5_fa4wh"]
 
-[node name="Investigation" unique_id=364124238 instance=ExtResource("1_161t6")]
+[node name="Investigation2" unique_id=364124238 instance=ExtResource("1_161t6")]
+investigation_def_override = ExtResource("4_invdef")
 
 [node name="BaseImage" parent="AspectContainer" index="0"]
 texture = ExtResource("2_10qxv")
@@ -14,3 +17,8 @@ position = Vector2(878, 279)
 size = Vector2(342.00586, 247.95102)
 required_zoom = 1.0
 target_scene = "uid://c3pgmp3pajxh7"
+
+[node name="Clue" parent="." index="4" unique_id=175460932 instance=ExtResource("5_fa4wh")]
+position = Vector2(936, 614)
+polygon = PackedVector2Array(-45, -49, -28, -85, 19, -91, 59, -55, 65, 7, 18, 56, -21, 96, -47, 71, -73, 10, -42, -40, -48, -58)
+deduction_id = "SharedDeduction"

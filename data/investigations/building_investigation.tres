@@ -1,0 +1,55 @@
+[gd_resource type="Resource" script_class="InvestigationDef" format=3 uid="uid://3tytcrdmkqo4"]
+
+[ext_resource type="Script" uid="uid://dytxc18gk03ci" path="res://scripts/deduction_def.gd" id="1_ded"]
+[ext_resource type="Texture2D" uid="uid://jfmlnno0peq4" path="res://assets/images/placeholder.jpg" id="2_img"]
+[ext_resource type="Script" uid="uid://dkrvahxsfkky3" path="res://scripts/investigation_def.gd" id="3_inv"]
+[ext_resource type="Texture2D" uid="uid://dq15fqs3jaivj" path="res://assets/images/scene7kv3.png" id="4_f4h5j"]
+
+[sub_resource type="Resource" id="ded_family_names"]
+script = ExtResource("1_ded")
+deduction_id = "FamilyNames"
+image = ExtResource("2_img")
+
+[sub_resource type="Resource" id="ded_they_are_mafia"]
+script = ExtResource("1_ded")
+deduction_id = "TheyAreMafia"
+image = ExtResource("2_img")
+
+[sub_resource type="Resource" id="ded_anna_loves_enzo"]
+script = ExtResource("1_ded")
+deduction_id = "AnnaLovesEnzo"
+image = ExtResource("2_img")
+
+[sub_resource type="Resource" id="ded_identify_room"]
+script = ExtResource("1_ded")
+deduction_id = "IdentifyRoom"
+image = ExtResource("2_img")
+
+[sub_resource type="Resource" id="ded_blackmail"]
+script = ExtResource("1_ded")
+deduction_id = "BlackMail"
+image = ExtResource("2_img")
+
+[sub_resource type="Resource" id="ded_school_budget"]
+script = ExtResource("1_ded")
+deduction_id = "SchoolBudget"
+image = ExtResource("2_img")
+
+[sub_resource type="Resource" id="ded_heist_tools"]
+script = ExtResource("1_ded")
+deduction_id = "HeistTools"
+image = ExtResource("2_img")
+
+[sub_resource type="Resource" id="ded_mafia_money"]
+script = ExtResource("1_ded")
+deduction_id = "MafiaMoney"
+image = ExtResource("2_img")
+
+[resource]
+script = ExtResource("3_inv")
+investigation_id = "building"
+display_name = "Family Building"
+description = "Investigate the family building and uncover the connections between its residents."
+root_scene = "uid://gfb2ma1mi2by"
+vignette_texture = ExtResource("4_f4h5j")
+deductions = Array[ExtResource("1_ded")]([SubResource("ded_family_names"), SubResource("ded_they_are_mafia"), SubResource("ded_anna_loves_enzo"), SubResource("ded_identify_room"), SubResource("ded_blackmail"), SubResource("ded_school_budget"), SubResource("ded_heist_tools"), SubResource("ded_mafia_money")])

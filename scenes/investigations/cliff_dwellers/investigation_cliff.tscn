@@ -2,18 +2,12 @@
 
 [ext_resource type="PackedScene" uid="uid://b7k3n8v2qxp1m" path="res://scenes/templates/investigation.tscn" id="1_k17w2"]
 [ext_resource type="Texture2D" uid="uid://djfgw1cfc0utw" path="res://assets/images/CliffDwellers.png" id="2_3xnvt"]
-[ext_resource type="Script" uid="uid://dytxc18gk03ci" path="res://scripts/deduction_def.gd" id="2_nnhdc"]
-[ext_resource type="Texture2D" uid="uid://jfmlnno0peq4" path="res://assets/images/placeholder.jpg" id="3_0yv7r"]
 [ext_resource type="PackedScene" uid="uid://xgx3rdksgdgx" path="res://scenes/templates/clue.tscn" id="3_8c6o4"]
 [ext_resource type="PackedScene" path="res://scenes/templates/transition_area.tscn" id="3_45inw"]
-
-[sub_resource type="Resource" id="Resource_nnhdc"]
-script = ExtResource("2_nnhdc")
-deduction_id = "FirstDeduction"
-image = ExtResource("3_0yv7r")
+[ext_resource type="Resource" uid="uid://ouwsox3y8taq" path="res://data/investigations/cliff_investigation.tres" id="4_invdef"]
 
 [node name="Investigation" unique_id=1371006165 instance=ExtResource("1_k17w2")]
-deductions = Array[ExtResource("2_nnhdc")]([SubResource("Resource_nnhdc")])
+investigation_def_override = ExtResource("4_invdef")
 
 [node name="BaseImage" parent="AspectContainer" index="0"]
 texture = ExtResource("2_3xnvt")
@@ -40,3 +34,8 @@ deduction_id = "FirstDeduction"
 position = Vector2(1866, 183.25)
 polygon = PackedVector2Array(-37, -32.25, -31, 53.75, 36, 37.75, 32, -59.25)
 deduction_id = "FirstDeduction"
+
+[node name="Clue2" parent="." index="4" unique_id=501433766 instance=ExtResource("3_8c6o4")]
+position = Vector2(1466, 440)
+polygon = PackedVector2Array(-33, -17, -23, -37, 4, -37, 34, -14, 11, 41, -17, 40)
+deduction_id = "SharedDeduction"

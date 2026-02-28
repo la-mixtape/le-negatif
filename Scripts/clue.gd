@@ -83,9 +83,9 @@ func _get_investigation_deduction_ids() -> PackedStringArray:
 	var node := get_parent()
 	while node:
 		if node is Investigation:
-			var deductions_arr = node.get("deductions")
-			if deductions_arr:
-				for d in deductions_arr:
+			var inv_def = node.get("investigation_def_override")
+			if inv_def:
+				for d in inv_def.deductions:
 					if d is DeductionDef and not d.deduction_id.is_empty():
 						if not ids.has(d.deduction_id):
 							ids.append(d.deduction_id)

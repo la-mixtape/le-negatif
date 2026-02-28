@@ -36,10 +36,14 @@ class_name Investigation
 ## Duration of the vignette hover fade (seconds)
 @export var vignette_hover_duration: float = 0.5
 
-# ─── Deduction exports ──────────────────────────────────────────
+# ─── Investigation definition ────────────────────────────────────
 
-## Deduction definitions for this investigation
-@export var deductions: Array[DeductionDef] = []
+## Shared investigation definition (deductions, metadata).
+## Set this on both root and sub-scenes to the same .tres resource.
+## At runtime, falls back to GameManager's active investigation if null.
+@export var investigation_def_override: InvestigationDef = null
+
+# ─── Deduction exports ──────────────────────────────────────────
 
 ## Duration for deduction image display fade-in/out (seconds)
 @export var deduction_fade_duration: float = 0.4
@@ -147,9 +151,9 @@ var _completed_thumbs: Array[Control] = []
 
 # ─── Clue & interaction state ───────────────────────────────────
 
+var _clue_keys: Dictionary = {}  # Node -> String (original path key, computed before reparenting)
 var _clues: Array = []
 var _transition_areas: Array = []
-var _selected_clues: Array = []
 
 # ─── Vignette HUD ──────────────────────────────────────────────
 
@@ -168,6 +172,41 @@ var _vignette_hover_tweens: Array = []
 @onready var base_image: TextureRect = $AspectContainer/BaseImage
 @onready var magnifier_container: Control = $MagnifierContainer
 @onready var magnifier_circle: ColorRect = $MagnifierContainer/MagnifierCircle
+
+
+# ─── Investigation definition helper ─────────────────────────────
+
+func _get_investigation_def() -> InvestigationDef:
+	if investigation_def_override:
+		return investigation_def_override
+	return GameManager.get_active_investigation()
+
+
+func _build_clue_keys() -> void:
+	"""Walk the tree BEFORE reparenting to record stable clue keys that match scan-time paths."""
+	var found: Array = []
+	_find_nodes_recursive(self, _ClueScript, found)
+	for clue in found:
+		_clue_keys[clue] = scene_file_path + "::" + str(get_path_to(clue))
+
+
+func _get_clue_key(clue: Node) -> String:
+	"""Return the stable key for a clue (precomputed before reparenting)."""
+	return _clue_keys.get(clue, scene_file_path + "::" + str(get_path_to(clue)))
+
+
+func _build_atlas_for_clue(clue: Node) -> AtlasTexture:
+	"""Build an AtlasTexture for a clue's vignette region (stored for cross-scene persistence)."""
+	var vignette: Rect2 = clue.get_vignette_rect_local()
+	if not _active_texture or vignette.size == Vector2.ZERO:
+		return null
+	var atlas := AtlasTexture.new()
+	atlas.atlas = _active_texture
+	var clue_xform: Transform2D = clue.get_transform()
+	var zc_origin: Vector2 = clue_xform * vignette.position
+	var zc_end: Vector2 = clue_xform * (vignette.position + vignette.size)
+	atlas.region = _container_rect_to_image_rect(Rect2(zc_origin, zc_end - zc_origin))
+	return atlas
 
 
 # ─── Lifecycle ──────────────────────────────────────────────────
@@ -189,6 +228,9 @@ func _ready() -> void:
 
 	# Set up aspect ratio container for 16:9
 	aspect_container.ratio = 16.0 / 9.0
+
+	# Compute clue keys BEFORE reparenting so paths match scan-time discovery
+	_build_clue_keys()
 
 	# Wrap content in zoom container for scroll-based zoom/pan
 	_setup_zoom_container()
@@ -213,8 +255,8 @@ func _ready() -> void:
 	# Build completed deductions tray (bottom-right thumbnails)
 	_setup_completed_tray()
 
-	# Ensure magnifier draws on top of vignettes
-	# move_child(magnifier_container, -1)
+	# Restore vignettes from GameManager (cross-scene persistence)
+	_rebuild_vignette_display()
 
 
 func _input(event: InputEvent) -> void:
@@ -530,7 +572,8 @@ func _handle_click() -> bool:
 	# Check clue polygons (transform-agnostic via to_local)
 	var global_mouse := get_global_mouse_position()
 	for clue in _clues:
-		if _completed_deductions.has(clue.deduction_id):
+		var did: String = clue.deduction_id
+		if not did.is_empty() and _completed_deductions.has(did):
 			continue
 		var clue_local: Vector2 = clue.to_local(global_mouse)
 		if Geometry2D.is_point_in_polygon(clue_local, clue.polygon):
@@ -547,17 +590,18 @@ func _setup_clues() -> void:
 
 
 func _toggle_clue(clue: Node) -> void:
-	if clue in _selected_clues:
+	if GameManager.is_clue_selected(_get_clue_key(clue)):
 		_deselect_clue(clue)
-	elif _selected_clues.size() < _max_clues_per_deduction:
+	elif GameManager.selected_clue_order.size() < _max_clues_per_deduction:
 		_select_clue(clue)
 
 
 func _select_clue(clue: Node) -> void:
-	_selected_clues.append(clue)
+	var atlas := _build_atlas_for_clue(clue)
+	GameManager.select_clue(_get_clue_key(clue), clue.deduction_id, atlas, scene_file_path)
 	_rebuild_vignette_display()
 	# Wait for the slide-in animation to finish before checking deduction
-	var tween_idx := _selected_clues.size() - 1
+	var tween_idx: int = GameManager.selected_clue_order.size() - 1
 	var slide_tween = _vignette_tweens[tween_idx]
 	if slide_tween:
 		await slide_tween.finished
@@ -565,13 +609,14 @@ func _select_clue(clue: Node) -> void:
 
 
 func _deselect_clue(clue: Node) -> void:
-	var index := _selected_clues.find(clue)
+	var clue_key := _get_clue_key(clue)
+	var index: int = GameManager.selected_clue_order.find(clue_key)
 	if index == -1:
 		return
 
-	var occupied_count := _selected_clues.size()
+	var occupied_count: int = GameManager.selected_clue_order.size()
 	# Remove immediately so a second click during animation is treated as re-select
-	_selected_clues.remove_at(index)
+	GameManager.deselect_clue(clue_key)
 
 	var slot_size := VIGNETTE_IMAGE_SIZE + vignette_frame_width * 2.0
 
@@ -603,11 +648,14 @@ func _deselect_clue(clue: Node) -> void:
 
 
 func _setup_deductions() -> void:
-	"""Build deduction lookups from exported definitions and discovered clues."""
-	for deduction in deductions:
-		if not deduction.deduction_id.is_empty():
-			_deduction_defs[deduction.deduction_id] = deduction
+	"""Build deduction lookups from InvestigationDef and local clues."""
+	var inv_def := _get_investigation_def()
+	if inv_def:
+		for deduction in inv_def.deductions:
+			if not deduction.deduction_id.is_empty():
+				_deduction_defs[deduction.deduction_id] = deduction
 
+	# Map LOCAL clues in this scene to their deduction IDs
 	for clue in _clues:
 		var did: String = clue.deduction_id
 		if did.is_empty():
@@ -616,51 +664,48 @@ func _setup_deductions() -> void:
 			_deduction_clues[did] = []
 		_deduction_clues[did].append(clue)
 
-	# Max vignette slots = largest clue group (minimum 3)
+	# Max vignette slots = largest clue count across all deductions (minimum 3)
 	var max_count := 3
+	if inv_def:
+		for ded in inv_def.deductions:
+			max_count = maxi(max_count, GameManager.get_required_clue_count(ded.deduction_id))
 	for did in _deduction_clues:
 		max_count = maxi(max_count, _deduction_clues[did].size())
 	_max_clues_per_deduction = max_count
 
 	# Pre-populate completed deductions from GameManager (persistence across scenes)
-	for did in _deduction_clues:
+	for did in _deduction_defs:
 		if GameManager.is_deduction_completed(did):
 			_completed_deductions[did] = true
 
 
 func _check_deduction_completion() -> void:
-	"""Check if all clues for any deduction are selected, and resolve it."""
-	for deduction_id in _deduction_clues:
+	"""Check if all required clues for any deduction are selected (cross-scene)."""
+	for deduction_id in _deduction_defs:
 		if _completed_deductions.has(deduction_id):
 			continue
-		var required_clues: Array = _deduction_clues[deduction_id]
-		var all_selected := true
-		for clue in required_clues:
-			if clue not in _selected_clues:
-				all_selected = false
-				break
-		if all_selected:
-			_resolve_deduction(deduction_id, required_clues)
+		if GameManager.check_deduction_completion(deduction_id):
+			var clue_ids: Array[String] = GameManager.get_selected_clues_for_deduction(deduction_id)
+			_resolve_deduction(deduction_id, clue_ids)
 			return
 
 
-func _resolve_deduction(deduction_id: String, clues: Array) -> void:
+func _resolve_deduction(deduction_id: String, clue_ids: Array[String]) -> void:
 	"""Complete a deduction: turn frames green, hold, slide out, show deduction image."""
 	_completed_deductions[deduction_id] = true
 	GameManager.complete_deduction(deduction_id)
 
 	# Turn all occupied vignette frames green
-	for i in _selected_clues.size():
-		_vignette_frames[i].color = Color.GREEN
+	for i in GameManager.selected_clue_order.size():
+		if i < _vignette_frames.size():
+			_vignette_frames[i].color = Color.GREEN
 
 	# Hold the green-framed vignettes on screen
 	await get_tree().create_timer(deduction_hold_duration).timeout
 
-	# Remove resolved clues from selection
-	for clue in clues:
-		var idx := _selected_clues.find(clue)
-		if idx != -1:
-			_selected_clues.remove_at(idx)
+	# Remove resolved clues from GameManager
+	for cid in clue_ids:
+		GameManager.deselect_clue(cid)
 
 	# Reset frame colors back to white
 	for i in _max_clues_per_deduction:
@@ -704,11 +749,14 @@ func _slide_all_vignettes_out(on_complete: Callable) -> void:
 
 
 func _check_investigation_complete() -> void:
-	"""Check if all deductions are completed."""
-	for deduction_id in _deduction_clues:
-		if not _completed_deductions.has(deduction_id):
+	"""Check if all deductions in the investigation definition are completed."""
+	var inv_def := _get_investigation_def()
+	if not inv_def:
+		return
+	for ded in inv_def.deductions:
+		if not GameManager.is_deduction_completed(ded.deduction_id):
 			return
-	GameManager.complete_investigation(scene_file_path)
+	GameManager.complete_investigation(inv_def.investigation_id)
 
 
 # ─── Transition areas ───────────────────────────────────────────
@@ -866,7 +914,10 @@ func _update_vignette_layout() -> void:
 
 func _rebuild_vignette_display() -> void:
 	var slot_size := VIGNETTE_IMAGE_SIZE + vignette_frame_width * 2.0
+	var order: Array[String] = GameManager.selected_clue_order
 	for i in _max_clues_per_deduction:
+		if i >= _vignette_panels.size():
+			break
 		var panel := _vignette_panels[i]
 		var img := _vignette_images[i]
 
@@ -874,19 +925,10 @@ func _rebuild_vignette_display() -> void:
 		if _vignette_tweens[i]:
 			_vignette_tweens[i].kill()
 
-		if i < _selected_clues.size():
-			var clue: Node = _selected_clues[i]
-			# Set vignette texture from polygon AABB region
-			var vignette: Rect2 = clue.get_vignette_rect_local()
-			if _active_texture and vignette.size != Vector2.ZERO:
-				var atlas := AtlasTexture.new()
-				atlas.atlas = _active_texture
-				# Convert vignette rect from clue-local to parent-local space
-				# (clues are children of aspect_container; base_image fills it)
-				var clue_xform: Transform2D = clue.get_transform()
-				var zc_origin: Vector2 = clue_xform * vignette.position
-				var zc_end: Vector2 = clue_xform * (vignette.position + vignette.size)
-				atlas.region = _container_rect_to_image_rect(Rect2(zc_origin, zc_end - zc_origin))
+		if i < order.size():
+			var sel: Dictionary = GameManager.selected_clues[order[i]]
+			var atlas: AtlasTexture = sel["atlas_texture"]
+			if atlas:
 				img.texture = atlas
 			# Slide panel in from right
 			var tween := create_tween().set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
