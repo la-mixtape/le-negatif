@@ -126,6 +126,7 @@ func _ready() -> void:
 	# React to clue selection changes
 	GameManager.clue_selection_changed.connect(sync_display)
 	GameManager.investigation_started.connect(_on_investigation_started)
+	GameManager.deduction_completed.connect(_on_deduction_completed_hud)
 
 	# Handle viewport resize
 	get_viewport().size_changed.connect(_on_viewport_resized)
@@ -341,6 +342,10 @@ func _on_investigation_started() -> void:
 	clear()
 
 
+func _on_deduction_completed_hud(_deduction_id: String) -> void:
+	_update_questions_button_visibility()
+
+
 func _sync_immediate() -> void:
 	"""Set all slots to match GameManager state WITHOUT animation."""
 	var target_keys: Array[String] = GameManager.selected_clue_order
@@ -371,6 +376,8 @@ func _sync_immediate() -> void:
 			if GameManager.is_deduction_completed(ded.deduction_id):
 				if ded.image:
 					add_completed_thumbnail(ded.image, false)
+
+	_update_questions_button_visibility()
 
 
 func _clear_slots() -> void:
@@ -612,7 +619,15 @@ func _dismiss_questions_overlay() -> void:
 	tween.tween_callback(func():
 		_questions_overlay.visible = false
 		_questions_overlay_active = false
+		_update_questions_button_visibility()
 	)
+
+
+func _update_questions_button_visibility() -> void:
+	"""Hide the Questions button when there are no remaining questions."""
+	if not _questions_button:
+		return
+	_questions_button.visible = not _collect_questions().is_empty()
 
 
 func _collect_questions() -> Array[String]:
