@@ -8,17 +8,20 @@
 [sub_resource type="Resource" id="ded_family_names"]
 script = ExtResource("1_ded")
 deduction_id = "FamilyNames"
+question = "Qui sont les gens de cet immeuble?"
 image = ExtResource("2_img")
 
 [sub_resource type="Resource" id="ded_they_are_mafia"]
 script = ExtResource("1_ded")
 deduction_id = "TheyAreMafia"
+question = "Qui sont ces mecs louches en costard?"
 image = ExtResource("2_img")
 
 [sub_resource type="Resource" id="ded_anna_loves_enzo"]
 script = ExtResource("1_ded")
 deduction_id = "AnnaLovesEnzo"
 image = ExtResource("2_img")
+optional = true
 
 [sub_resource type="Resource" id="ded_identify_room"]
 script = ExtResource("1_ded")
