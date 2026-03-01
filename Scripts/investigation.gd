@@ -532,6 +532,8 @@ func _handle_click() -> bool:
 		var did: String = clue.deduction_id
 		if not did.is_empty() and _completed_deductions.has(did):
 			continue
+		if not did.is_empty() and not GameManager.is_deduction_available(did):
+			continue
 		var clue_local: Vector2 = clue.to_local(global_mouse)
 		if Geometry2D.is_point_in_polygon(clue_local, clue.polygon):
 			_toggle_clue(clue)
@@ -637,11 +639,13 @@ func _resolve_deduction(deduction_id: String, clue_ids: Array[String]) -> void:
 
 
 func _check_investigation_complete() -> void:
-	"""Check if all deductions in the investigation definition are completed."""
+	"""Check if all required (non-optional) deductions are completed."""
 	var inv_def := _get_investigation_def()
 	if not inv_def:
 		return
 	for ded in inv_def.deductions:
+		if ded.optional:
+			continue
 		if not GameManager.is_deduction_completed(ded.deduction_id):
 			return
 	GameManager.complete_investigation(inv_def.investigation_id)

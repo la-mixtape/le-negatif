@@ -12,6 +12,7 @@ signal deduction_completed(deduction_id: String)
 signal investigation_completed(investigation_id: String)
 signal clue_selection_changed()
 signal investigation_started
+signal deduction_availability_changed(deduction_id: String, available: bool)
 
 # ─── Investigation registry ──────────────────────────────────
 
@@ -56,6 +57,9 @@ var selected_clue_order: Array[String] = []
 ## Auto-discovered mapping of deduction_id -> Array[String] of clue keys
 var _deduction_clue_registry: Dictionary = {}
 
+## Tracks which deductions are currently available
+var available_deductions: Dictionary = {}
+
 
 func _ready() -> void:
 	pass
@@ -86,6 +90,7 @@ func start_new_investigation(investigation_id: String) -> void:
 	selected_clue_order.clear()
 	discovered_clues.clear()
 	completed_deductions.clear()
+	available_deductions.clear()
 	scene_stack.clear()
 
 	# Notify persistent HUD to clear before rebuilding
@@ -93,6 +98,9 @@ func start_new_investigation(investigation_id: String) -> void:
 
 	# Auto-discover clues across all scenes in the investigation tree
 	_scan_investigation_tree()
+
+	# Compute initial deduction availability
+	evaluate_availability()
 
 	navigate_to(_active_investigation.root_scene)
 
@@ -265,15 +273,47 @@ func _resolve_scene_path(path: String) -> String:
 # ─── Deduction completion ────────────────────────────────────
 
 func complete_deduction(deduction_id: String) -> void:
-	"""Register a completed deduction."""
+	"""Register a completed deduction and re-evaluate availability."""
 	if not completed_deductions.has(deduction_id):
 		completed_deductions[deduction_id] = true
 		deduction_completed.emit(deduction_id)
+		evaluate_availability()
 
 
 func is_deduction_completed(deduction_id: String) -> bool:
 	"""Check if a deduction has been completed."""
 	return completed_deductions.get(deduction_id, false)
+
+
+# ─── Deduction availability ──────────────────────────────────
+
+func evaluate_availability() -> void:
+	"""Re-evaluate availability conditions for all deductions in the active investigation."""
+	if not _active_investigation:
+		return
+	for ded in _active_investigation.deductions:
+		var did := ded.deduction_id
+		if did.is_empty():
+			continue
+		var was_available: bool = available_deductions.get(did, false)
+		var now_available: bool = _evaluate_deduction_availability(ded)
+		available_deductions[did] = now_available
+		if was_available != now_available:
+			deduction_availability_changed.emit(did, now_available)
+
+
+func _evaluate_deduction_availability(ded: DeductionDef) -> bool:
+	"""Check if a single deduction is available based on its condition."""
+	if completed_deductions.has(ded.deduction_id):
+		return true
+	if ded.availability_condition == null:
+		return true
+	return ded.availability_condition.evaluate(completed_deductions)
+
+
+func is_deduction_available(deduction_id: String) -> bool:
+	"""Check if a deduction is currently available."""
+	return available_deductions.get(deduction_id, true)
 
 
 # ─── Navigation ──────────────────────────────────────────────
@@ -305,6 +345,7 @@ func save_game() -> Dictionary:
 		"clues": discovered_clues.duplicate(),
 		"deductions": completed_deductions.duplicate(),
 		"completed": completed_investigations.duplicate(),
+		"available": available_deductions.duplicate(),
 		"scene_stack": scene_stack.duplicate(),
 	}
 
@@ -316,7 +357,9 @@ func load_game(save_data: Dictionary) -> void:
 	discovered_clues = save_data.get("clues", {}).duplicate()
 	completed_deductions = save_data.get("deductions", {}).duplicate()
 	completed_investigations = save_data.get("completed", {}).duplicate()
+	available_deductions = save_data.get("available", {}).duplicate()
 	var stack = save_data.get("scene_stack", [])
 	scene_stack.clear()
 	for path in stack:
 		scene_stack.push_back(path)
+	evaluate_availability()

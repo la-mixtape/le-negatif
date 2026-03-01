@@ -3,6 +3,7 @@
 [ext_resource type="Script" uid="uid://dytxc18gk03ci" path="res://scripts/deduction_def.gd" id="1_ded"]
 [ext_resource type="Texture2D" uid="uid://jfmlnno0peq4" path="res://assets/images/placeholder.jpg" id="2_img"]
 [ext_resource type="Script" uid="uid://dkrvahxsfkky3" path="res://scripts/investigation_def.gd" id="3_inv"]
+[ext_resource type="Script" uid="uid://blxrr7cb8qcvs" path="res://scripts/deduction_expression.gd" id="3_lhipb"]
 [ext_resource type="Texture2D" uid="uid://djfgw1cfc0utw" path="res://assets/images/CliffDwellers.png" id="4_vignette"]
 
 [sub_resource type="Resource" id="Resource_3ohav"]
@@ -17,6 +18,18 @@ deduction_id = "SharedDeduction"
 image = ExtResource("2_img")
 metadata/_custom_type_script = "uid://dytxc18gk03ci"
 
+[sub_resource type="Resource" id="Resource_2rf8u"]
+script = ExtResource("3_lhipb")
+deduction_id = "FirstDeduction"
+metadata/_custom_type_script = "uid://blxrr7cb8qcvs"
+
+[sub_resource type="Resource" id="Resource_ja6uh"]
+script = ExtResource("1_ded")
+deduction_id = "DeductionWithCondition"
+image = ExtResource("2_img")
+availability_condition = SubResource("Resource_2rf8u")
+metadata/_custom_type_script = "uid://dytxc18gk03ci"
+
 [resource]
 script = ExtResource("3_inv")
 investigation_id = "cliff_dwellers"
@@ -24,4 +37,4 @@ display_name = "Cliff Dwellers"
 description = "Examine the cliff dwellers painting and discover hidden details."
 root_scene = "res://scenes/investigations/cliff_dwellers/investigation_cliff.tscn"
 vignette_texture = ExtResource("4_vignette")
-deductions = Array[ExtResource("1_ded")]([SubResource("Resource_3ohav"), SubResource("Resource_lhipb")])
+deductions = Array[ExtResource("1_ded")]([SubResource("Resource_3ohav"), SubResource("Resource_lhipb"), SubResource("Resource_ja6uh")])
