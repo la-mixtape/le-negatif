@@ -1,9 +1,9 @@
-[gd_scene load_steps=4 format=3 uid="uid://gfb2ma1mi2by"]
+[gd_scene format=3 uid="uid://gfb2ma1mi2by"]
 
 [ext_resource type="PackedScene" uid="uid://b7k3n8v2qxp1m" path="res://scenes/templates/investigation.tscn" id="1_fd3qo"]
 [ext_resource type="Texture2D" uid="uid://dq15fqs3jaivj" path="res://assets/images/scene7kv3.png" id="4_krour"]
 [ext_resource type="PackedScene" uid="uid://xgx3rdksgdgx" path="res://scenes/templates/clue.tscn" id="5_151vr"]
-[ext_resource type="Resource" path="res://data/investigations/building_investigation.tres" id="6_invdef"]
+[ext_resource type="Resource" uid="uid://3tytcrdmkqo4" path="res://data/investigations/building_investigation.tres" id="6_invdef"]
 
 [node name="Investigation" unique_id=954780573 instance=ExtResource("1_fd3qo")]
 investigation_def_override = ExtResource("6_invdef")

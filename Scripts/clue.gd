@@ -9,10 +9,15 @@ class_name Clue
 ## The vignette region is defined by vignette_offset + vignette_extent exports.
 
 ## Label shown in the Inspector when no deduction is assigned
-const _EMPTY_LABEL := "(Empty)"
+const _EMPTY_LABEL := "(None)"
 
 ## Backing store for the deductions this clue belongs to
 var _deduction_ids: PackedStringArray = PackedStringArray()
+
+## Public accessor used by game code
+var deduction_ids: PackedStringArray:
+	get: return _deduction_ids
+	set(value): _deduction_ids = value
 
 ## Center of the vignette square relative to the Clue origin
 @export var vignette_offset: Vector2 = Vector2.ZERO:
@@ -46,12 +51,18 @@ func _set(property: StringName, value: Variant) -> bool:
 	var prop_str := str(property)
 	# Backward compat: old single deduction_id from .tscn files
 	if property == &"deduction_id":
-		var id_str := "" if str(value) == _EMPTY_LABEL else str(value)
+		var id_str := str(value)
 		if not id_str.is_empty():
 			_deduction_ids = PackedStringArray([id_str])
 		else:
 			_deduction_ids = PackedStringArray()
 		return true
+	# Backward compat: PackedStringArray format from .tscn files
+	if property == &"deduction_ids":
+		if value is PackedStringArray:
+			_deduction_ids = value
+		return true
+	# Individual slot properties from the inspector
 	if prop_str.begins_with("deduction_ids/"):
 		var idx := int(prop_str.get_slice("/", 1))
 		var id_str := "" if str(value) == _EMPTY_LABEL else str(value)
@@ -68,13 +79,6 @@ func _set(property: StringName, value: Variant) -> bool:
 
 func _get(property: StringName) -> Variant:
 	var prop_str := str(property)
-	# Backward compat for code reading old property
-	if property == &"deduction_id":
-		if _deduction_ids.size() > 0:
-			return _deduction_ids[0]
-		return ""
-	if property == &"deduction_ids":
-		return _deduction_ids
 	if prop_str.begins_with("deduction_ids/"):
 		var idx := int(prop_str.get_slice("/", 1))
 		if idx < _deduction_ids.size():
@@ -94,7 +98,6 @@ func _get_property_list() -> Array[Dictionary]:
 		all_ids = _get_investigation_deduction_ids()
 
 	var props: Array[Dictionary] = []
-	# Show existing entries + one empty slot for adding
 	var count := _deduction_ids.size()
 	for i in range(count + 1):
 		# Exclude IDs already used in other slots
@@ -102,7 +105,7 @@ func _get_property_list() -> Array[Dictionary]:
 		for id in all_ids:
 			var used := false
 			for j in range(count):
-				if j != i and j < _deduction_ids.size() and _deduction_ids[j] == id:
+				if j != i and _deduction_ids[j] == id:
 					used = true
 					break
 			if not used:
@@ -110,12 +113,14 @@ func _get_property_list() -> Array[Dictionary]:
 		var hint_string := _EMPTY_LABEL
 		if available.size() > 0:
 			hint_string = _EMPTY_LABEL + "," + ",".join(available)
+		# Filled slots: store + editor. Trailing empty slot: editor only (not saved).
+		var usage := PROPERTY_USAGE_DEFAULT if i < count else PROPERTY_USAGE_EDITOR
 		props.append({
 			"name": "deduction_ids/" + str(i),
 			"type": TYPE_STRING,
 			"hint": PROPERTY_HINT_ENUM,
 			"hint_string": hint_string,
-			"usage": PROPERTY_USAGE_DEFAULT,
+			"usage": usage,
 		})
 	return props
 
