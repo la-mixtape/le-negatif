@@ -25,17 +25,6 @@ class_name Investigation
 ## Strength of lens distortion at edges
 @export_range(0.0, 3.0) var lens_distortion: float = 0.75
 
-# ─── Vignette exports ────────────────────────────────────────────
-
-## Width of the white frame around each vignette (pixels)
-@export var vignette_frame_width: float = 4.0
-
-## Opacity vignettes fade to on hover (0 = fully transparent, 1 = opaque)
-@export_range(0.0, 1.0) var vignette_hover_opacity: float = 0.2
-
-## Duration of the vignette hover fade (seconds)
-@export var vignette_hover_duration: float = 0.5
-
 # ─── Investigation definition ────────────────────────────────────
 
 ## Shared investigation definition (deductions, metadata).
@@ -77,17 +66,6 @@ class_name Investigation
 @export var pan_drag_threshold: float = 4.0
 
 # ─── Constants ──────────────────────────────────────────────────
-
-const VIGNETTE_IMAGE_SIZE := 200.0
-const VIGNETTE_MARGIN := 0.05
-const VIGNETTE_GAP := 12.0
-const VIGNETTE_SLIDE_DURATION := 0.3
-
-const COMPLETED_THUMB_SIZE := 64.0
-const COMPLETED_THUMB_FRAME := 2.0
-const COMPLETED_THUMB_GAP := 8.0
-const COMPLETED_THUMB_MARGIN := 16.0
-const COMPLETED_THUMB_SLIDE_DURATION := 0.3
 
 # Script references for type-safe child discovery
 const _ClueScript = preload("res://scripts/clue.gd")
@@ -145,25 +123,11 @@ var _deduction_overlay: Control
 var _deduction_overlay_panel: Control
 var _deduction_overlay_image: TextureRect
 
-# Completed deductions tray (bottom-right thumbnails)
-var _completed_tray: Control
-var _completed_thumbs: Array[Control] = []
-
 # ─── Clue & interaction state ───────────────────────────────────
 
 var _clue_keys: Dictionary = {}  # Node -> String (original path key, computed before reparenting)
 var _clues: Array = []
 var _transition_areas: Array = []
-
-# ─── Vignette HUD ──────────────────────────────────────────────
-
-var _vignette_hud: Control
-var _vignette_slots: Array[Control] = []   # clip containers (fixed position)
-var _vignette_panels: Array[Control] = []  # animated container (frame + image)
-var _vignette_frames: Array[ColorRect] = [] # white frame background
-var _vignette_images: Array[TextureRect] = []
-var _vignette_tweens: Array = []
-var _vignette_hover_tweens: Array = []
 
 # ─── Nodes ──────────────────────────────────────────────────────
 
@@ -246,17 +210,12 @@ func _ready() -> void:
 	_setup_deductions()
 	_setup_transition_areas()
 
-	# Build vignette HUD for clue display
-	_setup_vignette_hud()
+	# Initialize persistent vignette HUD with slot count for this investigation
+	InvestigationHUD.initialize(_max_clues_per_deduction)
+	InvestigationHUD.set_hud_visible(true)
 
 	# Build deduction completion overlay
 	_setup_deduction_overlay()
-
-	# Build completed deductions tray (bottom-right thumbnails)
-	_setup_completed_tray()
-
-	# Restore vignettes from GameManager (cross-scene persistence)
-	_rebuild_vignette_display()
 
 
 func _input(event: InputEvent) -> void:
@@ -324,12 +283,12 @@ func _input(event: InputEvent) -> void:
 			get_viewport().set_input_as_handled()
 		return
 
-	# Backspace to go back to previous investigation
+	# Backspace to go back (sub-scene) or exit (root scene)
 	if event is InputEventKey and event.pressed and not event.echo:
 		if event.keycode == KEY_BACKSPACE:
-			if GameManager.go_back():
-				if is_inside_tree():
-					get_viewport().set_input_as_handled()
+			InvestigationHUD.navigate_back()
+			if is_inside_tree():
+				get_viewport().set_input_as_handled()
 
 
 func _process(delta: float) -> void:
@@ -510,8 +469,6 @@ func _on_viewport_resized() -> void:
 	if _zoom_container:
 		_clamp_content_origin()
 		_update_zoom_transform()
-	_update_vignette_layout()
-	_update_completed_tray_layout()
 
 
 # ─── Coordinate conversion ──────────────────────────────────────
@@ -599,52 +556,13 @@ func _toggle_clue(clue: Node) -> void:
 func _select_clue(clue: Node) -> void:
 	var atlas := _build_atlas_for_clue(clue)
 	GameManager.select_clue(_get_clue_key(clue), clue.deduction_id, atlas, scene_file_path)
-	_rebuild_vignette_display()
-	# Wait for the slide-in animation to finish before checking deduction
-	var tween_idx: int = GameManager.selected_clue_order.size() - 1
-	var slide_tween = _vignette_tweens[tween_idx]
-	if slide_tween:
-		await slide_tween.finished
+	# InvestigationHUD reacts to clue_selection_changed signal; wait for slide-in
+	await InvestigationHUD.slot_animated
 	_check_deduction_completion()
 
 
 func _deselect_clue(clue: Node) -> void:
-	var clue_key := _get_clue_key(clue)
-	var index: int = GameManager.selected_clue_order.find(clue_key)
-	if index == -1:
-		return
-
-	var occupied_count: int = GameManager.selected_clue_order.size()
-	# Remove immediately so a second click during animation is treated as re-select
-	GameManager.deselect_clue(clue_key)
-
-	var slot_size := VIGNETTE_IMAGE_SIZE + vignette_frame_width * 2.0
-
-	if index == occupied_count - 1:
-		# Last slot: just slide it out, no repositioning needed
-		var panel := _vignette_panels[index]
-		var img := _vignette_images[index]
-		if _vignette_tweens[index]:
-			_vignette_tweens[index].kill()
-		var tween := create_tween().set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_IN)
-		tween.tween_property(panel, "position", Vector2(slot_size, 0), VIGNETTE_SLIDE_DURATION)
-		tween.tween_callback(func(): img.texture = null)
-		_vignette_tweens[index] = tween
-	else:
-		# Non-last slot: slide out this panel and those below, then rebuild
-		var tween := create_tween().set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_IN)
-		tween.set_parallel(true)
-		for i in range(index, occupied_count):
-			if _vignette_tweens[i]:
-				_vignette_tweens[i].kill()
-			tween.tween_property(_vignette_panels[i], "position", Vector2(slot_size, 0), VIGNETTE_SLIDE_DURATION)
-		tween.chain().tween_callback(func():
-			for j in range(index, _max_clues_per_deduction):
-				_vignette_images[j].texture = null
-			_rebuild_vignette_display()
-		)
-		for i in range(index, occupied_count):
-			_vignette_tweens[i] = tween
+	GameManager.deselect_clue(_get_clue_key(clue))
 
 
 func _setup_deductions() -> void:
@@ -696,9 +614,7 @@ func _resolve_deduction(deduction_id: String, clue_ids: Array[String]) -> void:
 	GameManager.complete_deduction(deduction_id)
 
 	# Turn all occupied vignette frames green
-	for i in GameManager.selected_clue_order.size():
-		if i < _vignette_frames.size():
-			_vignette_frames[i].color = Color.GREEN
+	InvestigationHUD.set_frame_colors(Color.GREEN)
 
 	# Hold the green-framed vignettes on screen
 	await get_tree().create_timer(deduction_hold_duration).timeout
@@ -708,44 +624,16 @@ func _resolve_deduction(deduction_id: String, clue_ids: Array[String]) -> void:
 		GameManager.deselect_clue(cid)
 
 	# Reset frame colors back to white
-	for i in _max_clues_per_deduction:
-		_vignette_frames[i].color = Color.WHITE
+	InvestigationHUD.reset_frame_colors()
 
 	# Slide all vignettes out, then show deduction image
-	_slide_all_vignettes_out(func():
+	InvestigationHUD.slide_all_out(func():
 		var def: DeductionDef = _deduction_defs.get(deduction_id)
 		if def and def.image:
 			_show_deduction_overlay(def.image)
 		else:
 			_check_investigation_complete()
 	)
-
-
-func _slide_all_vignettes_out(on_complete: Callable) -> void:
-	"""Slide all occupied vignette panels out to the right, then call on_complete."""
-	var slot_size := VIGNETTE_IMAGE_SIZE + vignette_frame_width * 2.0
-	var any_visible := false
-
-	var tween := create_tween().set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_IN)
-	tween.set_parallel(true)
-	for i in _max_clues_per_deduction:
-		if _vignette_tweens[i]:
-			_vignette_tweens[i].kill()
-		if _vignette_images[i].texture:
-			any_visible = true
-			tween.tween_property(
-				_vignette_panels[i], "position",
-				Vector2(slot_size, 0), VIGNETTE_SLIDE_DURATION
-			)
-
-	if any_visible:
-		tween.chain().tween_callback(func():
-			for j in _max_clues_per_deduction:
-				_vignette_images[j].texture = null
-			on_complete.call()
-		)
-	else:
-		on_complete.call()
 
 
 func _check_investigation_complete() -> void:
@@ -839,122 +727,6 @@ func _stop_transition_pulse() -> void:
 	magnifier_circle.scale = Vector2.ONE
 
 
-# ─── Vignette HUD ──────────────────────────────────────────────
-
-func _setup_vignette_hud() -> void:
-	_vignette_hud = Control.new()
-	_vignette_hud.name = "VignetteHUD"
-	_vignette_hud.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_vignette_hud.set_anchors_preset(Control.PRESET_FULL_RECT)
-	add_child(_vignette_hud)
-
-	var fw := vignette_frame_width
-	var slot_size := VIGNETTE_IMAGE_SIZE + fw * 2.0
-
-	for i in _max_clues_per_deduction:
-		# Clip container (fixed position, hides content when slid out)
-		var slot := Control.new()
-		slot.name = "VignetteSlot%d" % i
-		slot.clip_contents = true
-		slot.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		slot.size = Vector2(slot_size, slot_size)
-		_vignette_hud.add_child(slot)
-		_vignette_slots.append(slot)
-
-		# Panel that slides in/out (carries frame + image together)
-		var panel := Control.new()
-		panel.name = "Panel"
-		panel.mouse_filter = Control.MOUSE_FILTER_PASS
-		panel.size = Vector2(slot_size, slot_size)
-		panel.position = Vector2(slot_size, 0)  # start hidden to the right
-		slot.add_child(panel)
-		_vignette_panels.append(panel)
-
-		# Hover fade
-		panel.mouse_entered.connect(_on_vignette_hover.bind(i, true))
-		panel.mouse_exited.connect(_on_vignette_hover.bind(i, false))
-
-		# White frame background
-		var frame := ColorRect.new()
-		frame.name = "Frame"
-		frame.color = Color.WHITE
-		frame.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		frame.size = Vector2(slot_size, slot_size)
-		panel.add_child(frame)
-		_vignette_frames.append(frame)
-
-		# Image inset by frame width
-		var img := TextureRect.new()
-		img.name = "VignetteImage"
-		img.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-		img.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
-		img.position = Vector2(fw, fw)
-		img.size = Vector2(VIGNETTE_IMAGE_SIZE, VIGNETTE_IMAGE_SIZE)
-		img.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		panel.add_child(img)
-		_vignette_images.append(img)
-		_vignette_tweens.append(null)
-		_vignette_hover_tweens.append(null)
-
-	_update_vignette_layout()
-
-
-func _update_vignette_layout() -> void:
-	if not _vignette_hud:
-		return
-	var slot_size := VIGNETTE_IMAGE_SIZE + vignette_frame_width * 2.0
-	var margin_x := size.x * VIGNETTE_MARGIN
-	var margin_y := size.y * VIGNETTE_MARGIN
-	var slot_x := size.x - margin_x - slot_size
-	for i in _max_clues_per_deduction:
-		var slot_y := margin_y + i * (slot_size + VIGNETTE_GAP)
-		_vignette_slots[i].position = Vector2(slot_x, slot_y)
-		_vignette_slots[i].size = Vector2(slot_size, slot_size)
-
-
-func _rebuild_vignette_display() -> void:
-	var slot_size := VIGNETTE_IMAGE_SIZE + vignette_frame_width * 2.0
-	var order: Array[String] = GameManager.selected_clue_order
-	for i in _max_clues_per_deduction:
-		if i >= _vignette_panels.size():
-			break
-		var panel := _vignette_panels[i]
-		var img := _vignette_images[i]
-
-		# Kill any running tween for this slot
-		if _vignette_tweens[i]:
-			_vignette_tweens[i].kill()
-
-		if i < order.size():
-			var sel: Dictionary = GameManager.selected_clues[order[i]]
-			var atlas: AtlasTexture = sel["atlas_texture"]
-			if atlas:
-				img.texture = atlas
-			# Slide panel in from right
-			var tween := create_tween().set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
-			tween.tween_property(panel, "position", Vector2.ZERO, VIGNETTE_SLIDE_DURATION)
-			_vignette_tweens[i] = tween
-		else:
-			if img.texture:
-				# Slide panel out to the right
-				var tween := create_tween().set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_IN)
-				tween.tween_property(panel, "position", Vector2(slot_size, 0), VIGNETTE_SLIDE_DURATION)
-				tween.tween_callback(func(): img.texture = null)
-				_vignette_tweens[i] = tween
-			else:
-				panel.position = Vector2(slot_size, 0)
-
-
-func _on_vignette_hover(index: int, hovered: bool) -> void:
-	if _vignette_hover_tweens[index]:
-		_vignette_hover_tweens[index].kill()
-	var panel := _vignette_panels[index]
-	var target := vignette_hover_opacity if hovered else 1.0
-	var tween := create_tween().set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
-	tween.tween_property(panel, "modulate:a", target, vignette_hover_duration)
-	_vignette_hover_tweens[index] = tween
-
-
 # ─── Deduction overlay ─────────────────────────────────────────
 
 func _setup_deduction_overlay() -> void:
@@ -1043,75 +815,6 @@ func _dismiss_deduction_overlay() -> void:
 		_deduction_overlay_image.texture = null
 		_deduction_overlay_active = false
 		if completed_texture:
-			_add_completed_thumbnail(completed_texture)
+			InvestigationHUD.add_completed_thumbnail(completed_texture)
 		_check_investigation_complete()
 	)
-
-
-# ─── Completed deductions tray ──────────────────────────────────
-
-func _setup_completed_tray() -> void:
-	"""Build the bottom-right tray for completed deduction thumbnails."""
-	_completed_tray = Control.new()
-	_completed_tray.name = "CompletedTray"
-	_completed_tray.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_completed_tray.set_anchors_preset(Control.PRESET_FULL_RECT)
-	add_child(_completed_tray)
-
-	# Pre-populate thumbnails for already-completed deductions (persistence)
-	for did in _completed_deductions:
-		var def: DeductionDef = _deduction_defs.get(did)
-		if def and def.image:
-			_add_completed_thumbnail(def.image, false)
-
-
-func _add_completed_thumbnail(texture: Texture2D, animate: bool = true) -> void:
-	"""Add a 32x32 framed thumbnail to the completed tray."""
-	var fw := COMPLETED_THUMB_FRAME
-	var thumb_total := COMPLETED_THUMB_SIZE + fw * 2.0
-
-	var thumb := Control.new()
-	thumb.name = "CompletedThumb%d" % _completed_thumbs.size()
-	thumb.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	thumb.size = Vector2(thumb_total, thumb_total)
-	_completed_tray.add_child(thumb)
-
-	var frame := ColorRect.new()
-	frame.color = Color.WHITE
-	frame.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	frame.size = Vector2(thumb_total, thumb_total)
-	thumb.add_child(frame)
-
-	var img := TextureRect.new()
-	img.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	img.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
-	img.position = Vector2(fw, fw)
-	img.size = Vector2(COMPLETED_THUMB_SIZE, COMPLETED_THUMB_SIZE)
-	img.texture = texture
-	img.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	thumb.add_child(img)
-
-	_completed_thumbs.append(thumb)
-	_update_completed_tray_layout(animate)
-
-
-func _update_completed_tray_layout(animate_last: bool = false) -> void:
-	"""Position all thumbnails horizontally at the bottom-right."""
-	var fw := COMPLETED_THUMB_FRAME
-	var thumb_total := COMPLETED_THUMB_SIZE + fw * 2.0
-	var count := _completed_thumbs.size()
-
-	var total_width := count * thumb_total + maxf(0, count - 1) * COMPLETED_THUMB_GAP
-	var start_x := size.x - COMPLETED_THUMB_MARGIN - total_width
-	var target_y := size.y - COMPLETED_THUMB_MARGIN - thumb_total
-
-	for i in count:
-		var thumb: Control = _completed_thumbs[i]
-		var target_pos := Vector2(start_x + i * (thumb_total + COMPLETED_THUMB_GAP), target_y)
-
-		if animate_last and i == count - 1:
-			thumb.position = Vector2(target_pos.x, size.y)
-			var tw := create_tween().set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
-			tw.tween_property(thumb, "position", target_pos, COMPLETED_THUMB_SLIDE_DURATION)
-		else:
-			thumb.position = target_pos

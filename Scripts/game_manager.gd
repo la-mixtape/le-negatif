@@ -11,6 +11,7 @@ signal clue_discovered(clue_id: String)
 signal deduction_completed(deduction_id: String)
 signal investigation_completed(investigation_id: String)
 signal clue_selection_changed()
+signal investigation_started
 
 # ─── Investigation registry ──────────────────────────────────
 
@@ -86,6 +87,9 @@ func start_new_investigation(investigation_id: String) -> void:
 	discovered_clues.clear()
 	completed_deductions.clear()
 	scene_stack.clear()
+
+	# Notify persistent HUD to clear before rebuilding
+	investigation_started.emit()
 
 	# Auto-discover clues across all scenes in the investigation tree
 	_scan_investigation_tree()
