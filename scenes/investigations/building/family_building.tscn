@@ -15,95 +15,95 @@ texture = ExtResource("4_krour")
 position = Vector2(1448.5, 705)
 polygon = PackedVector2Array(-9.5, -7, -9.5, 7, 9.5, 7, 9.5, -7)
 vignette_extent = 22.42
-deduction_id = "FamilyNames"
+deduction_ids/0 = "FamilyNames"
 
 [node name="Postal" parent="AspectContainer" index="2" unique_id=1281310378 instance=ExtResource("5_151vr")]
 position = Vector2(728, 726)
 polygon = PackedVector2Array(-22, -8, -22, 10, 24, 11, 21, -8)
 vignette_offset = Vector2(0, 17.11)
-deduction_id = "FamilyNames"
+deduction_ids/0 = "FamilyNames"
 
 [node name="MafiaTag" parent="AspectContainer" index="3" unique_id=2107676214 instance=ExtResource("5_151vr")]
 position = Vector2(142, 314)
 polygon = PackedVector2Array(-78, -63, -76, 45, 30, 75, 35, -21, -62, -64, -73, -72)
 vignette_offset = Vector2(-14.22, 5.73)
 vignette_extent = 68.21
-deduction_id = "TheyAreMafia"
+deduction_ids/0 = "TheyAreMafia"
 
 [node name="MafiaGuys" parent="AspectContainer" index="4" unique_id=1715008562 instance=ExtResource("5_151vr")]
 position = Vector2(1710, 772)
 polygon = PackedVector2Array(-259, 306, -263, 295, -276, 292, -265, 181, -282, 150, -281, 91, -252, 39, -216, 26, -191, 24, -170, -2, -179, -38, -166, -67, -146, -90, -109, -100, -88, -97, -57, -74, -63, -37, -70, -7, -82, 23, -93, 38, -61, 50, -49, 73, -46, 63, -16, 64, -10, 37, 15, 20, 21, 8, 16, -25, 18, -62, 13, -77, 62, -100, 89, -99, 116, -86, 134, -58, 133, -8, 207, 30, 210, 265, 201, 308, 18, 307, 15, 273, 0, 265, -5, 242, 4, 170, -20, 176, -27, 197, -61, 213, -63, 290, -72, 306)
 vignette_offset = Vector2(-43.63, 57.42)
 vignette_extent = 250.0
-deduction_id = "TheyAreMafia"
+deduction_ids/0 = "TheyAreMafia"
 
 [node name="Mask" parent="AspectContainer" index="5" unique_id=333395257 instance=ExtResource("5_151vr")]
 position = Vector2(470, 371)
 polygon = PackedVector2Array(-30, 46, -20, 59, -13, 61, 2, 57, 24, 47, 33, 36, 33, 12, 23, -7, 21, -15, 27, -17, 22, -28, 13, -39, 0, -45, -13, -44, -23, -32, -24, -22, -22, -19, -14, -19, -9, -17, -6, -12, -6, -3, -12, 3, -22, 10, -26, 20, -29, 22, -36, 20, -38, 28, -39, 39)
 vignette_offset = Vector2(-0.06, 5.93)
 vignette_extent = 60.0
-deduction_id = "HeistTools"
+deduction_ids/0 = "HeistTools"
 
 [node name="Gun" parent="AspectContainer" index="6" unique_id=1894189011 instance=ExtResource("5_151vr")]
 position = Vector2(982, 337)
 polygon = PackedVector2Array(-5, -5, -4, -6, -2, -6, 0, -4, 2, -5, 2, -6, -2, -11, -7, -6, -6, -4)
 vignette_offset = Vector2(-1.66, -5.84)
 vignette_extent = 10.0
-deduction_id = "HeistTools"
+deduction_ids/0 = "HeistTools"
 
 [node name="OlderGirl" parent="." index="3" unique_id=434684636 instance=ExtResource("5_151vr")]
 position = Vector2(1399, 349)
 polygon = PackedVector2Array(-33, 122, -16, 73, -8, 45, -17, 32, -31, -3, -52, 18, -88, 17, -95, 4, -72, -17, -64, -31, -71, -47, -59, -70, -50, -65, -54, -86, -54, -99, -25, -112, 5, -109, 17, -97, 39, -65, 65, -48, 62, -22, 58, -5, 52, 30, 60, 56, 54, 107, 46, 129, -31, 127)
 vignette_extent = 130.0
-deduction_id = "AnnaLovesEnzo"
+deduction_ids/0 = "AnnaLovesEnzo"
 
 [node name="LoveTag" parent="." index="4" unique_id=444209534 instance=ExtResource("5_151vr")]
 position = Vector2(119, 780)
 polygon = PackedVector2Array(-46, -43, -47, 45, 36, 31, 35, -42)
-deduction_id = "AnnaLovesEnzo"
+deduction_ids/0 = "AnnaLovesEnzo"
 
 [node name="FootPoster" parent="." index="5" unique_id=1433995223 instance=ExtResource("5_151vr")]
 position = Vector2(968, 288)
 polygon = PackedVector2Array(-13, -17, -13, 17, 14, 17, 15, -18)
 vignette_extent = 22.0
-deduction_id = "IdentifyRoom"
+deduction_ids/0 = "IdentifyRoom"
 
 [node name="FootBall" parent="." index="6" unique_id=502802012 instance=ExtResource("5_151vr")]
 position = Vector2(938, 854)
 polygon = PackedVector2Array(-12, -20, -17, -15, -21, 0, -22, 5, -19, 18, -18, 23, -3, 27, 17, 19, 23, 5, 22, -6, 6, -21)
-deduction_id = "IdentifyRoom"
+deduction_ids/0 = "IdentifyRoom"
 
 [node name="BlackEye" parent="." index="7" unique_id=981717109 instance=ExtResource("5_151vr")]
 position = Vector2(444, 722)
-deduction_id = "BlackMail"
+deduction_ids/0 = "BlackMail"
 
 [node name="BlackmailList" parent="." index="8" unique_id=1885172507 instance=ExtResource("5_151vr")]
 position = Vector2(1723, 971)
 polygon = PackedVector2Array(-13, 7, 11, 13, 12, -19, -10, -14)
-deduction_id = "BlackMail"
+deduction_ids/0 = "BlackMail"
 
 [node name="StolenCash" parent="." index="9" unique_id=1701319661 instance=ExtResource("5_151vr")]
 position = Vector2(898, 369)
 polygon = PackedVector2Array(-12, 16, -14, 5, 0, 5, 0, 10, -2, 14, -7, 16)
 vignette_offset = Vector2(-2.96, 6.79)
 vignette_extent = 20.0
-deduction_id = "MafiaMoney"
+deduction_ids/0 = "MafiaMoney"
 
 [node name="StolenSms" parent="." index="10" unique_id=1842765971 instance=ExtResource("5_151vr")]
 position = Vector2(1683, 861)
 polygon = PackedVector2Array(-21, -6, -18, 21, -17, 25, -5, 28, 5, 23, 16, 10, 26, -20, -15, -25)
-deduction_id = "MafiaMoney"
+deduction_ids/0 = "MafiaMoney"
 
 [node name="Ecoles" parent="." index="11" unique_id=1453867522 instance=ExtResource("5_151vr")]
 position = Vector2(1056.2, 264.4)
 polygon = PackedVector2Array(-7.2, -6.3999996, -7.2, 10.6, 10.8, 10.6, 10.8, -7.3999996, -7.2, -7.3999996)
 vignette_offset = Vector2(1.23, 1.29)
 vignette_extent = 10.0
-deduction_id = "SchoolBudget"
+deduction_ids/0 = "SchoolBudget"
 
 [node name="Budget" parent="." index="12" unique_id=99980679 instance=ExtResource("5_151vr")]
 position = Vector2(1085.6, 270)
 polygon = PackedVector2Array(-6.6000004, -6, -7.6000004, 10, 6.856819, 10.000004, 10.4, 10, 10.4, -7, -6.6000004, -7)
 vignette_offset = Vector2(1.59, 1.93)
 vignette_extent = 10.0
-deduction_id = "SchoolBudget"
+deduction_ids/0 = "SchoolBudget"

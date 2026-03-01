@@ -47,7 +47,7 @@ var scene_stack: Array[String] = []
 # ─── Cross-scene clue selection ──────────────────────────────
 
 ## Per-clue selection data stored as Dictionary:
-##   { clue_id: String, deduction_id: String, atlas_texture: AtlasTexture, scene_path: String }
+##   { clue_id: String, deduction_ids: PackedStringArray, atlas_texture: AtlasTexture, scene_path: String }
 ## Keyed by clue_id.
 var selected_clues: Dictionary = {}
 
@@ -148,14 +148,14 @@ func is_clue_discovered(clue_id: String) -> bool:
 
 # ─── Cross-scene clue selection ──────────────────────────────
 
-func select_clue(clue_id: String, deduction_id: String,
+func select_clue(clue_id: String, deduction_ids: PackedStringArray,
 		atlas: AtlasTexture, scene_path: String) -> void:
 	"""Register a clue selection with its vignette texture (survives scene changes)."""
 	if selected_clues.has(clue_id):
 		return
 	selected_clues[clue_id] = {
 		"clue_id": clue_id,
-		"deduction_id": deduction_id,
+		"deduction_ids": deduction_ids,
 		"atlas_texture": atlas,
 		"scene_path": scene_path,
 	}
@@ -180,7 +180,8 @@ func get_selected_clues_for_deduction(deduction_id: String) -> Array[String]:
 	var result: Array[String] = []
 	for cid in selected_clue_order:
 		var sel: Dictionary = selected_clues[cid]
-		if sel["deduction_id"] == deduction_id:
+		var dids: PackedStringArray = sel["deduction_ids"]
+		if dids.has(deduction_id):
 			result.append(cid)
 	return result
 
@@ -240,13 +241,15 @@ func _scan_scene(scene_path: String, visited: Array[String]) -> void:
 func _collect_clues(node: Node, scene_path: String, scene_root: Node) -> void:
 	"""Recursively find Clue nodes and register them in the deduction registry."""
 	if node is Clue:
-		var deduction_id: String = node.get("deduction_id")
-		if not deduction_id.is_empty():
+		var deduction_ids: PackedStringArray = node.get("deduction_ids")
+		if deduction_ids and deduction_ids.size() > 0:
 			var rel_path := str(scene_root.get_path_to(node))
 			var key := scene_path + "::" + rel_path
-			if not _deduction_clue_registry.has(deduction_id):
-				_deduction_clue_registry[deduction_id] = []
-			_deduction_clue_registry[deduction_id].append(key)
+			for deduction_id in deduction_ids:
+				if not deduction_id.is_empty():
+					if not _deduction_clue_registry.has(deduction_id):
+						_deduction_clue_registry[deduction_id] = []
+					_deduction_clue_registry[deduction_id].append(key)
 	for child in node.get_children():
 		_collect_clues(child, scene_path, scene_root)
 

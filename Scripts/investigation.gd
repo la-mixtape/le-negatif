@@ -529,11 +529,16 @@ func _handle_click() -> bool:
 	# Check clue polygons (transform-agnostic via to_local)
 	var global_mouse := get_global_mouse_position()
 	for clue in _clues:
-		var did: String = clue.deduction_id
-		if not did.is_empty() and _completed_deductions.has(did):
-			continue
-		if not did.is_empty() and not GameManager.is_deduction_available(did):
-			continue
+		var dids: PackedStringArray = clue.deduction_ids
+		if dids.size() > 0:
+			# Clickable if at least one deduction is not completed and available
+			var clickable := false
+			for did in dids:
+				if not _completed_deductions.has(did) and GameManager.is_deduction_available(did):
+					clickable = true
+					break
+			if not clickable:
+				continue
 		var clue_local: Vector2 = clue.to_local(global_mouse)
 		if Geometry2D.is_point_in_polygon(clue_local, clue.polygon):
 			_toggle_clue(clue)
@@ -557,7 +562,7 @@ func _toggle_clue(clue: Node) -> void:
 
 func _select_clue(clue: Node) -> void:
 	var atlas := _build_atlas_for_clue(clue)
-	GameManager.select_clue(_get_clue_key(clue), clue.deduction_id, atlas, scene_file_path)
+	GameManager.select_clue(_get_clue_key(clue), clue.deduction_ids, atlas, scene_file_path)
 	# InvestigationHUD reacts to clue_selection_changed signal; wait for slide-in
 	await InvestigationHUD.slot_animated
 	_check_deduction_completion()
@@ -577,12 +582,12 @@ func _setup_deductions() -> void:
 
 	# Map LOCAL clues in this scene to their deduction IDs
 	for clue in _clues:
-		var did: String = clue.deduction_id
-		if did.is_empty():
-			continue
-		if not _deduction_clues.has(did):
-			_deduction_clues[did] = []
-		_deduction_clues[did].append(clue)
+		for did in clue.deduction_ids:
+			if did.is_empty():
+				continue
+			if not _deduction_clues.has(did):
+				_deduction_clues[did] = []
+			_deduction_clues[did].append(clue)
 
 	# Max vignette slots = largest clue count across all deductions (minimum 3)
 	var max_count := 3

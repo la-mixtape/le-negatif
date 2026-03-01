@@ -11,8 +11,8 @@ class_name Clue
 ## Label shown in the Inspector when no deduction is assigned
 const _EMPTY_LABEL := "(Empty)"
 
-## Backing store for the deduction this clue belongs to
-var _deduction_id: String = ""
+## Backing store for the deductions this clue belongs to
+var _deduction_ids: PackedStringArray = PackedStringArray()
 
 ## Center of the vignette square relative to the Clue origin
 @export var vignette_offset: Vector2 = Vector2.ZERO:
@@ -43,37 +43,80 @@ func _ready() -> void:
 
 
 func _set(property: StringName, value: Variant) -> bool:
+	var prop_str := str(property)
+	# Backward compat: old single deduction_id from .tscn files
 	if property == &"deduction_id":
-		_deduction_id = "" if str(value) == _EMPTY_LABEL else str(value)
+		var id_str := "" if str(value) == _EMPTY_LABEL else str(value)
+		if not id_str.is_empty():
+			_deduction_ids = PackedStringArray([id_str])
+		else:
+			_deduction_ids = PackedStringArray()
+		return true
+	if prop_str.begins_with("deduction_ids/"):
+		var idx := int(prop_str.get_slice("/", 1))
+		var id_str := "" if str(value) == _EMPTY_LABEL else str(value)
+		while _deduction_ids.size() <= idx:
+			_deduction_ids.append("")
+		_deduction_ids[idx] = id_str
+		# Trim trailing empty entries
+		while _deduction_ids.size() > 0 and _deduction_ids[-1].is_empty():
+			_deduction_ids.resize(_deduction_ids.size() - 1)
+		notify_property_list_changed()
 		return true
 	return false
 
 
 func _get(property: StringName) -> Variant:
+	var prop_str := str(property)
+	# Backward compat for code reading old property
 	if property == &"deduction_id":
-		if Engine.is_editor_hint() and _deduction_id.is_empty():
+		if _deduction_ids.size() > 0:
+			return _deduction_ids[0]
+		return ""
+	if property == &"deduction_ids":
+		return _deduction_ids
+	if prop_str.begins_with("deduction_ids/"):
+		var idx := int(prop_str.get_slice("/", 1))
+		if idx < _deduction_ids.size():
+			var val := _deduction_ids[idx]
+			if Engine.is_editor_hint() and val.is_empty():
+				return _EMPTY_LABEL
+			return val
+		if Engine.is_editor_hint():
 			return _EMPTY_LABEL
-		return _deduction_id
+		return ""
 	return null
 
 
 func _get_property_list() -> Array[Dictionary]:
-	var hint := PROPERTY_HINT_ENUM
-	var hint_string := _EMPTY_LABEL
-
+	var all_ids := PackedStringArray()
 	if Engine.is_editor_hint() and is_inside_tree():
-		var ids := _get_investigation_deduction_ids()
-		if ids.size() > 0:
-			hint_string = _EMPTY_LABEL + "," + ",".join(ids)
+		all_ids = _get_investigation_deduction_ids()
 
-	var prop := {
-		"name": "deduction_id",
-		"type": TYPE_STRING,
-		"hint": hint,
-		"hint_string": hint_string,
-		"usage": PROPERTY_USAGE_DEFAULT,
-	}
-	var props: Array[Dictionary] = [prop]
+	var props: Array[Dictionary] = []
+	# Show existing entries + one empty slot for adding
+	var count := _deduction_ids.size()
+	for i in range(count + 1):
+		# Exclude IDs already used in other slots
+		var available := PackedStringArray()
+		for id in all_ids:
+			var used := false
+			for j in range(count):
+				if j != i and j < _deduction_ids.size() and _deduction_ids[j] == id:
+					used = true
+					break
+			if not used:
+				available.append(id)
+		var hint_string := _EMPTY_LABEL
+		if available.size() > 0:
+			hint_string = _EMPTY_LABEL + "," + ",".join(available)
+		props.append({
+			"name": "deduction_ids/" + str(i),
+			"type": TYPE_STRING,
+			"hint": PROPERTY_HINT_ENUM,
+			"hint_string": hint_string,
+			"usage": PROPERTY_USAGE_DEFAULT,
+		})
 	return props
 
 
