@@ -118,10 +118,14 @@ var _deduction_defs: Dictionary = {}
 var _deduction_clues: Dictionary = {}
 var _completed_deductions: Dictionary = {}
 var _deduction_overlay_active: bool = false
+var _deduction_overlay_deduction_id: String = ""
+var _deduction_overlay_is_review: bool = false
+var _deduction_overlay_ignore_next_release: bool = false
 
 var _deduction_overlay: Control
 var _deduction_overlay_panel: Control
 var _deduction_overlay_image: TextureRect
+var _deduction_overlay_label: Label
 
 # ─── Clue & interaction state ───────────────────────────────────
 
@@ -217,12 +221,18 @@ func _ready() -> void:
 	# Build deduction completion overlay
 	_setup_deduction_overlay()
 
+	# Re-show overlay when a completed thumbnail is clicked
+	InvestigationHUD.completed_thumbnail_clicked.connect(_on_completed_thumbnail_clicked)
+
 
 func _input(event: InputEvent) -> void:
 	# Block all input except click-to-dismiss while deduction overlay is shown
 	if _deduction_overlay_active:
 		if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and not event.pressed:
-			if not _pan_active:
+			if _deduction_overlay_ignore_next_release:
+				_deduction_overlay_ignore_next_release = false
+				get_viewport().set_input_as_handled()
+			elif not _pan_active:
 				_dismiss_deduction_overlay()
 				get_viewport().set_input_as_handled()
 		return
@@ -637,7 +647,7 @@ func _resolve_deduction(deduction_id: String, clue_ids: Array[String]) -> void:
 	InvestigationHUD.slide_all_out(func():
 		var def: DeductionDef = _deduction_defs.get(deduction_id)
 		if def and def.image:
-			_show_deduction_overlay(def.image)
+			_show_deduction_overlay(def.image, def.response, deduction_id)
 		else:
 			_check_investigation_complete()
 	)
@@ -783,10 +793,26 @@ func _setup_deduction_overlay() -> void:
 	_deduction_overlay_image.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_deduction_overlay_panel.add_child(_deduction_overlay_image)
 
+	# Response text on top of image
+	_deduction_overlay_label = Label.new()
+	_deduction_overlay_label.name = "ResponseLabel"
+	_deduction_overlay_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_deduction_overlay_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	_deduction_overlay_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_deduction_overlay_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_deduction_overlay_label.add_theme_color_override("font_color", Color.WHITE)
+	_deduction_overlay_label.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.8))
+	_deduction_overlay_label.add_theme_constant_override("shadow_offset_x", 2)
+	_deduction_overlay_label.add_theme_constant_override("shadow_offset_y", 2)
+	_deduction_overlay_label.add_theme_font_size_override("font_size", 32)
+	_deduction_overlay_panel.add_child(_deduction_overlay_label)
 
-func _show_deduction_overlay(texture: Texture2D) -> void:
+
+func _show_deduction_overlay(texture: Texture2D, response: String = "", deduction_id: String = "", is_review: bool = false) -> void:
 	"""Display the deduction completion image centered on screen."""
 	_deduction_overlay_active = true
+	_deduction_overlay_deduction_id = deduction_id
+	_deduction_overlay_is_review = is_review
 
 	var img_height := size.y * deduction_image_size_percent
 	var aspect := texture.get_size().x / texture.get_size().y
@@ -807,6 +833,12 @@ func _show_deduction_overlay(texture: Texture2D) -> void:
 	_deduction_overlay_image.size = Vector2(img_width, img_height)
 	_deduction_overlay_image.texture = texture
 
+	# Response label overlaid on the image
+	_deduction_overlay_label.text = response
+	_deduction_overlay_label.visible = not response.is_empty()
+	_deduction_overlay_label.position = Vector2(fw, fw)
+	_deduction_overlay_label.size = Vector2(img_width, img_height)
+
 	_deduction_overlay.modulate.a = 0.0
 	_deduction_overlay.visible = true
 
@@ -817,13 +849,29 @@ func _show_deduction_overlay(texture: Texture2D) -> void:
 func _dismiss_deduction_overlay() -> void:
 	"""Fade out the deduction overlay, add thumbnail, and check investigation completion."""
 	var completed_texture := _deduction_overlay_image.texture
+	var was_review := _deduction_overlay_is_review
+	var did := _deduction_overlay_deduction_id
 	var tween := create_tween().set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_IN)
 	tween.tween_property(_deduction_overlay, "modulate:a", 0.0, deduction_fade_duration)
 	tween.tween_callback(func():
 		_deduction_overlay.visible = false
 		_deduction_overlay_image.texture = null
+		_deduction_overlay_label.text = ""
 		_deduction_overlay_active = false
-		if completed_texture:
-			InvestigationHUD.add_completed_thumbnail(completed_texture)
-		_check_investigation_complete()
+		_deduction_overlay_deduction_id = ""
+		_deduction_overlay_is_review = false
+		if not was_review:
+			if completed_texture:
+				InvestigationHUD.add_completed_thumbnail(completed_texture, true, did)
+			_check_investigation_complete()
 	)
+
+
+func _on_completed_thumbnail_clicked(deduction_id: String) -> void:
+	"""Re-show the deduction overlay when a completed thumbnail is clicked."""
+	if _deduction_overlay_active:
+		return
+	var def: DeductionDef = _deduction_defs.get(deduction_id)
+	if def and def.image:
+		_deduction_overlay_ignore_next_release = true
+		_show_deduction_overlay(def.image, def.response, deduction_id, true)

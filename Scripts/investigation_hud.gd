@@ -8,6 +8,7 @@ extends CanvasLayer
 # ─── Signals ──────────────────────────────────────────────────
 
 signal slot_animated
+signal completed_thumbnail_clicked(deduction_id: String)
 
 # ─── Constants ────────────────────────────────────────────────
 
@@ -275,15 +276,17 @@ func slide_all_out(on_complete: Callable) -> void:
 		on_complete.call()
 
 
-func add_completed_thumbnail(texture: Texture2D, animate: bool = true) -> void:
+func add_completed_thumbnail(texture: Texture2D, animate: bool = true, deduction_id: String = "") -> void:
 	"""Add a framed thumbnail to the completed deductions tray."""
 	var fw := COMPLETED_THUMB_FRAME
 	var thumb_total := COMPLETED_THUMB_SIZE + fw * 2.0
 
 	var thumb := Control.new()
 	thumb.name = "CompletedThumb%d" % _completed_thumbs.size()
-	thumb.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	thumb.mouse_filter = Control.MOUSE_FILTER_STOP
 	thumb.size = Vector2(thumb_total, thumb_total)
+	thumb.set_meta("deduction_id", deduction_id)
+	thumb.gui_input.connect(_on_completed_thumb_input.bind(thumb))
 	_completed_tray.add_child(thumb)
 
 	var frame := ColorRect.new()
@@ -375,7 +378,7 @@ func _sync_immediate() -> void:
 		for ded in inv_def.deductions:
 			if GameManager.is_deduction_completed(ded.deduction_id):
 				if ded.image:
-					add_completed_thumbnail(ded.image, false)
+					add_completed_thumbnail(ded.image, false, ded.deduction_id)
 
 	_update_questions_button_visibility()
 
@@ -514,6 +517,15 @@ func _update_completed_tray_layout(animate_last: bool = false) -> void:
 			tw.tween_property(thumb, "position", target_pos, COMPLETED_THUMB_SLIDE_DURATION)
 		else:
 			thumb.position = target_pos
+
+
+func _on_completed_thumb_input(event: InputEvent, thumb: Control) -> void:
+	"""Emit signal when a completed thumbnail is clicked."""
+	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and event.pressed:
+		var did: String = thumb.get_meta("deduction_id", "")
+		if not did.is_empty():
+			completed_thumbnail_clicked.emit(did)
+			get_viewport().set_input_as_handled()
 
 
 func _on_vignette_hover(index: int, hovered: bool) -> void:

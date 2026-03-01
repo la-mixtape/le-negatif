@@ -7,6 +7,9 @@ class_name DeductionDef
 ## Guiding question displayed to the player for this deduction
 @export var question: String = ""
 
+## Text displayed on top of the image when this deduction is completed
+@export var response: String = ""
+
 ## Image displayed on screen when this deduction is completed
 @export var image: Texture2D
 

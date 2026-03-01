@@ -10,6 +10,7 @@
 script = ExtResource("1_ded")
 deduction_id = "FirstDeduction"
 question = "To be or not to be"
+response = "To be most probably"
 image = ExtResource("2_img")
 metadata/_custom_type_script = "uid://dytxc18gk03ci"
 
