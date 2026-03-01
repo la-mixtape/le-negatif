@@ -4,6 +4,9 @@ class_name DeductionDef
 ## Unique identifier for this deduction (matches clue.deduction_id)
 @export var deduction_id: String = ""
 
+## Guiding question displayed to the player for this deduction
+@export var question: String = ""
+
 ## Image displayed on screen when this deduction is completed
 @export var image: Texture2D
 

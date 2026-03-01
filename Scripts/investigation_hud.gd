@@ -28,6 +28,11 @@ const COMPLETED_THUMB_SLIDE_DURATION := 0.3
 const NAV_BUTTON_MARGIN := 32.0
 const NAV_BUTTON_FONT_SIZE := 24
 
+const QUESTIONS_BUTTON_MARGIN := 32.0
+const QUESTIONS_BUTTON_FONT_SIZE := 24
+const QUESTIONS_LIST_FONT_SIZE := 48
+const QUESTIONS_FADE_DURATION := 0.3
+
 # ─── State ────────────────────────────────────────────────────
 
 var _max_slots: int = 3
@@ -47,6 +52,11 @@ var _vignette_tweens: Array = []
 var _vignette_hover_tweens: Array = []
 
 var _nav_button: Button
+
+var _questions_button: Button
+var _questions_overlay: Control
+var _questions_label: RichTextLabel
+var _questions_overlay_active: bool = false
 
 var _completed_tray: Control
 var _completed_thumbs: Array[Control] = []
@@ -83,6 +93,32 @@ func _ready() -> void:
 	_nav_button.text = "Exit"
 	_nav_button.pressed.connect(_on_nav_button_pressed)
 	_root.add_child(_nav_button)
+
+	# Questions button (top-center)
+	_questions_button = Button.new()
+	_questions_button.name = "QuestionsButton"
+	_questions_button.add_theme_font_size_override("font_size", QUESTIONS_BUTTON_FONT_SIZE)
+	_questions_button.add_theme_color_override("font_color", Color.WHITE)
+	_questions_button.add_theme_color_override("font_hover_color", Color.WHITE)
+	_questions_button.add_theme_color_override("font_pressed_color", Color.WHITE)
+	var q_style := StyleBoxFlat.new()
+	q_style.bg_color = Color(0, 0, 0, 0.3)
+	q_style.set_corner_radius_all(4)
+	q_style.set_content_margin_all(8)
+	_questions_button.add_theme_stylebox_override("normal", q_style)
+	var q_hover := q_style.duplicate()
+	q_hover.bg_color = Color(0, 0, 0, 0.5)
+	_questions_button.add_theme_stylebox_override("hover", q_hover)
+	var q_pressed := q_style.duplicate()
+	q_pressed.bg_color = Color(0, 0, 0, 0.6)
+	_questions_button.add_theme_stylebox_override("pressed", q_pressed)
+	_questions_button.text = "Questions"
+	_questions_button.pressed.connect(_on_questions_button_pressed)
+	_root.add_child(_questions_button)
+	_update_questions_button_position()
+
+	# Questions overlay (full-screen dimmer + centered label list, hidden by default)
+	_setup_questions_overlay()
 
 	# Start hidden until an investigation scene activates us
 	_root.visible = false
@@ -488,3 +524,109 @@ func _on_vignette_hover(index: int, hovered: bool) -> void:
 func _on_viewport_resized() -> void:
 	_update_vignette_layout()
 	_update_completed_tray_layout()
+	_update_questions_button_position()
+
+
+# ─── Questions overlay ───────────────────────────────────────
+
+func _setup_questions_overlay() -> void:
+	"""Build the full-screen questions overlay (hidden by default)."""
+	_questions_overlay = Control.new()
+	_questions_overlay.name = "QuestionsOverlay"
+	_questions_overlay.mouse_filter = Control.MOUSE_FILTER_STOP
+	_questions_overlay.set_anchors_preset(Control.PRESET_FULL_RECT)
+	_questions_overlay.visible = false
+	_root.add_child(_questions_overlay)
+
+	# Dimmer background
+	var dimmer := ColorRect.new()
+	dimmer.name = "Dimmer"
+	dimmer.color = Color(0, 0, 0, 0.5)
+	dimmer.set_anchors_preset(Control.PRESET_FULL_RECT)
+	dimmer.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_questions_overlay.add_child(dimmer)
+
+	# RichTextLabel for the question list — anchored to center 60% of viewport width
+	_questions_label = RichTextLabel.new()
+	_questions_label.name = "QuestionsLabel"
+	_questions_label.bbcode_enabled = true
+	_questions_label.fit_content = true
+	_questions_label.scroll_active = false
+	_questions_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_questions_label.add_theme_font_size_override("normal_font_size", QUESTIONS_LIST_FONT_SIZE)
+	_questions_label.add_theme_color_override("default_color", Color.WHITE)
+	# Horizontally centered 60% width, vertically centered via anchors
+	_questions_label.anchor_left = 0.2
+	_questions_label.anchor_right = 0.8
+	_questions_label.anchor_top = 0.5
+	_questions_label.anchor_bottom = 0.5
+	_questions_label.grow_vertical = Control.GROW_DIRECTION_BOTH
+	_questions_overlay.add_child(_questions_label)
+
+	# Click anywhere on the overlay to dismiss
+	_questions_overlay.gui_input.connect(_on_questions_overlay_input)
+
+
+func _update_questions_button_position() -> void:
+	"""Position the Questions button at the top-center of the screen."""
+	if not _questions_button:
+		return
+	var viewport_size := _root.size
+	if viewport_size == Vector2.ZERO:
+		viewport_size = Vector2(get_viewport().size)
+	# Wait one frame for the button to compute its size
+	if _questions_button.size.x == 0:
+		await _questions_button.resized
+	var btn_x := (viewport_size.x - _questions_button.size.x) / 2.0
+	_questions_button.position = Vector2(btn_x, QUESTIONS_BUTTON_MARGIN)
+
+
+func _on_questions_button_pressed() -> void:
+	"""Show the questions overlay with available deduction questions."""
+	if _questions_overlay_active:
+		return
+	var questions := _collect_questions()
+	if questions.is_empty():
+		return
+	_questions_label.text = "[center]" + "\n\n".join(questions) + "[/center]"
+	_questions_overlay_active = true
+	_questions_overlay.modulate.a = 0.0
+	_questions_overlay.visible = true
+	var tween := _root.create_tween().set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+	tween.tween_property(_questions_overlay, "modulate:a", 1.0, QUESTIONS_FADE_DURATION)
+
+
+func _on_questions_overlay_input(event: InputEvent) -> void:
+	"""Dismiss the questions overlay on click."""
+	if not _questions_overlay_active:
+		return
+	if event is InputEventMouseButton and event.pressed:
+		_dismiss_questions_overlay()
+		get_viewport().set_input_as_handled()
+
+
+func _dismiss_questions_overlay() -> void:
+	"""Fade out the questions overlay."""
+	var tween := _root.create_tween().set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_IN)
+	tween.tween_property(_questions_overlay, "modulate:a", 0.0, QUESTIONS_FADE_DURATION)
+	tween.tween_callback(func():
+		_questions_overlay.visible = false
+		_questions_overlay_active = false
+	)
+
+
+func _collect_questions() -> Array[String]:
+	"""Gather questions from available, non-completed deductions."""
+	var result: Array[String] = []
+	var inv_def := GameManager.get_active_investigation()
+	if not inv_def:
+		return result
+	for ded in inv_def.deductions:
+		if ded.question.is_empty():
+			continue
+		if GameManager.is_deduction_completed(ded.deduction_id):
+			continue
+		if not GameManager.is_deduction_available(ded.deduction_id):
+			continue
+		result.append(ded.question)
+	return result

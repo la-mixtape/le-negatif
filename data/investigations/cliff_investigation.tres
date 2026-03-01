@@ -9,12 +9,14 @@
 [sub_resource type="Resource" id="Resource_3ohav"]
 script = ExtResource("1_ded")
 deduction_id = "FirstDeduction"
+question = "To be or not to be"
 image = ExtResource("2_img")
 metadata/_custom_type_script = "uid://dytxc18gk03ci"
 
 [sub_resource type="Resource" id="Resource_lhipb"]
 script = ExtResource("1_ded")
 deduction_id = "SharedDeduction"
+question = "Who am I"
 image = ExtResource("2_img")
 metadata/_custom_type_script = "uid://dytxc18gk03ci"
 
@@ -26,6 +28,7 @@ metadata/_custom_type_script = "uid://blxrr7cb8qcvs"
 [sub_resource type="Resource" id="Resource_ja6uh"]
 script = ExtResource("1_ded")
 deduction_id = "DeductionWithCondition"
+question = "I will only be displayed if first is solved"
 image = ExtResource("2_img")
 availability_condition = SubResource("Resource_2rf8u")
 metadata/_custom_type_script = "uid://dytxc18gk03ci"
