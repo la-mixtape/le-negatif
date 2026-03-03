@@ -72,9 +72,11 @@ deduction_ids/0 = "IdentifyRoom"
 position = Vector2(938, 854)
 polygon = PackedVector2Array(-12, -20, -17, -15, -21, 0, -22, 5, -19, 18, -18, 23, -3, 27, 17, 19, 23, 5, 22, -6, 6, -21)
 deduction_ids/0 = "IdentifyRoom"
+deduction_ids/1 = "CashHint"
 
 [node name="BlackEye" parent="." index="7" unique_id=981717109 instance=ExtResource("5_151vr")]
 position = Vector2(444, 722)
+polygon = PackedVector2Array(16, 3, 11, -4, 12, -12, 21, -10, 27, -3, 27, 3, 22, 5)
 deduction_ids/0 = "BlackMail"
 
 [node name="BlackmailList" parent="." index="8" unique_id=1885172507 instance=ExtResource("5_151vr")]
@@ -93,6 +95,8 @@ deduction_ids/0 = "MafiaMoney"
 position = Vector2(1683, 861)
 polygon = PackedVector2Array(-21, -6, -18, 21, -17, 25, -5, 28, 5, 23, 16, 10, 26, -20, -15, -25)
 deduction_ids/0 = "MafiaMoney"
+deduction_ids/1 = "CashHint"
+deduction_ids/2 = "MafiaWorried"
 
 [node name="Ecoles" parent="." index="11" unique_id=1453867522 instance=ExtResource("5_151vr")]
 position = Vector2(1056.2, 264.4)
