@@ -1,0 +1,7 @@
+[gd_scene format=3 uid="uid://xgx3rdksgdgx"]
+
+[ext_resource type="Script" uid="uid://bwskti7wxrvkc" path="res://scripts/clue.gd" id="1_script"]
+
+[node name="Clue" type="Polygon2D" unique_id=175460932]
+color = Color(0.2, 0.8, 0.2, 0.2)
+script = ExtResource("1_script")

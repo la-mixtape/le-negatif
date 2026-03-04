@@ -3,15 +3,15 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://cjefmx2sxfvpg"
-path="res://.godot/imported/apartment.jpg-749c8659bb1f7670d6226a66144801d8.ctex"
+path="res://.godot/imported/apartment.jpg-d3d789a420f7186cfaccc5799386db74.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://Assets/Images/apartment.jpg"
-dest_files=["res://.godot/imported/apartment.jpg-749c8659bb1f7670d6226a66144801d8.ctex"]
+source_file="res://assets/images/apartment.jpg"
+dest_files=["res://.godot/imported/apartment.jpg-d3d789a420f7186cfaccc5799386db74.ctex"]
 
 [params]
 

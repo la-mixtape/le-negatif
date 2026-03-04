@@ -1,0 +1,121 @@
+[gd_resource type="Resource" script_class="InvestigationDef" format=3 uid="uid://3tytcrdmkqo4"]
+
+[ext_resource type="Script" uid="uid://dytxc18gk03ci" path="res://scripts/deduction_def.gd" id="1_ded"]
+[ext_resource type="Texture2D" uid="uid://jfmlnno0peq4" path="res://assets/images/placeholder.jpg" id="2_img"]
+[ext_resource type="Script" uid="uid://blxrr7cb8qcvs" path="res://scripts/deduction_expression.gd" id="3_7daj8"]
+[ext_resource type="Script" uid="uid://dkrvahxsfkky3" path="res://scripts/investigation_def.gd" id="3_inv"]
+[ext_resource type="Texture2D" uid="uid://dq15fqs3jaivj" path="res://assets/images/scene7kv3.png" id="4_f4h5j"]
+
+[sub_resource type="Resource" id="Resource_xy6nk"]
+script = ExtResource("3_7daj8")
+deduction_id = "TheyAreMafia"
+metadata/_custom_type_script = "uid://blxrr7cb8qcvs"
+
+[sub_resource type="Resource" id="Resource_jtrcn"]
+script = ExtResource("1_ded")
+deduction_id = "MafiaWorried"
+question = "Pourquoi les mecs de la mafia ont l'air inquiets?"
+response = "Leur cercle de jeu a été braqué"
+image = ExtResource("2_img")
+availability_condition = SubResource("Resource_xy6nk")
+
+[sub_resource type="Resource" id="ded_family_names"]
+script = ExtResource("1_ded")
+deduction_id = "FamilyNames"
+question = "Qui sont les gens de cet immeuble?"
+response = "La famille Lopez"
+image = ExtResource("2_img")
+
+[sub_resource type="Resource" id="ded_they_are_mafia"]
+script = ExtResource("1_ded")
+deduction_id = "TheyAreMafia"
+question = "Qui sont ces mecs louches en costard?"
+response = "Ce sont des mafieux"
+image = ExtResource("2_img")
+
+[sub_resource type="Resource" id="ded_anna_loves_enzo"]
+script = ExtResource("1_ded")
+deduction_id = "AnnaLovesEnzo"
+response = "Elle est contente du tag de son amoureux"
+image = ExtResource("2_img")
+optional = true
+
+[sub_resource type="Resource" id="ded_identify_room"]
+script = ExtResource("1_ded")
+deduction_id = "IdentifyRoom"
+response = "C'est la chambre de la fille en bas"
+image = ExtResource("2_img")
+
+[sub_resource type="Resource" id="Resource_du8ce"]
+script = ExtResource("3_7daj8")
+deduction_id = "TheyAreMafia"
+metadata/_custom_type_script = "uid://blxrr7cb8qcvs"
+
+[sub_resource type="Resource" id="Resource_ufewj"]
+script = ExtResource("3_7daj8")
+deduction_id = "FamilyNames"
+metadata/_custom_type_script = "uid://blxrr7cb8qcvs"
+
+[sub_resource type="Resource" id="Resource_nwuts"]
+script = ExtResource("3_7daj8")
+type = 1
+operator = 0
+left_expression = SubResource("Resource_du8ce")
+right_expression = SubResource("Resource_ufewj")
+metadata/_custom_type_script = "uid://blxrr7cb8qcvs"
+
+[sub_resource type="Resource" id="ded_blackmail"]
+script = ExtResource("1_ded")
+deduction_id = "BlackMail"
+question = "Pourquoi ce comerçant a t'il un oeil au beurre noir?"
+response = "Il n'a pas payé ce qu'il devait"
+image = ExtResource("2_img")
+availability_condition = SubResource("Resource_nwuts")
+
+[sub_resource type="Resource" id="Resource_4i6a5"]
+script = ExtResource("3_7daj8")
+deduction_id = "MafiaWorried"
+metadata/_custom_type_script = "uid://blxrr7cb8qcvs"
+
+[sub_resource type="Resource" id="ded_heist_tools"]
+script = ExtResource("1_ded")
+deduction_id = "HeistTools"
+question = "Qui a braqué le cercle de jeu?"
+response = "C'est la chambre de la personne qui a braqué le cercle de jeu"
+image = ExtResource("2_img")
+availability_condition = SubResource("Resource_4i6a5")
+
+[sub_resource type="Resource" id="Resource_7daj8"]
+script = ExtResource("3_7daj8")
+deduction_id = "IdentifyRoom"
+metadata/_custom_type_script = "uid://blxrr7cb8qcvs"
+
+[sub_resource type="Resource" id="Resource_8pjwt"]
+script = ExtResource("3_7daj8")
+deduction_id = "HeistTools"
+metadata/_custom_type_script = "uid://blxrr7cb8qcvs"
+
+[sub_resource type="Resource" id="Resource_dxtue"]
+script = ExtResource("3_7daj8")
+type = 1
+operator = 0
+left_expression = SubResource("Resource_7daj8")
+right_expression = SubResource("Resource_8pjwt")
+metadata/_custom_type_script = "uid://blxrr7cb8qcvs"
+
+[sub_resource type="Resource" id="ded_school_budget"]
+script = ExtResource("1_ded")
+deduction_id = "SchoolBudget"
+question = "Pourquoi a-t-elle braqué le cercle de jeu ?"
+response = "Il lui manque de l'argent pour aller à la fac"
+image = ExtResource("2_img")
+availability_condition = SubResource("Resource_dxtue")
+
+[resource]
+script = ExtResource("3_inv")
+investigation_id = "building"
+display_name = "Family Building"
+description = "Investigate the family building and uncover the connections between its residents."
+root_scene = "uid://gfb2ma1mi2by"
+vignette_texture = ExtResource("4_f4h5j")
+deductions = Array[ExtResource("1_ded")]([SubResource("Resource_jtrcn"), SubResource("ded_family_names"), SubResource("ded_they_are_mafia"), SubResource("ded_anna_loves_enzo"), SubResource("ded_identify_room"), SubResource("ded_blackmail"), SubResource("ded_heist_tools"), SubResource("ded_school_budget")])
